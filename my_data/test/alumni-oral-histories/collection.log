@@ -1,0 +1,16 @@
+Processing file: /Users/markmcfate/GitHub/Map-MODS-to-MASTER/my_data/test/alumni-oral-histories/grinnell_19351_MODS.xml    03-Apr-2020 15:21 
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": ["Grinnell College.", "Alumni and alumnae.", "History.", "Forum (Grinnell, Iowa).", "Grinnell College. History Department.", "Grinnell College Political Scinece Department.", "Joe Rosenfield '25 Center (Grinnell, Iowa)", "Cleveland Hall (Grinnell, Iowa)"]}
+Processing file: /Users/markmcfate/GitHub/Map-MODS-to-MASTER/my_data/test/alumni-oral-histories/grinnell_12205_MODS.xml    03-Apr-2020 15:21 
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Grinnell College. Sociology Department."}
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Grinnell College."}
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Alumni and alumnae."}
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "History."}
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "United Church of Christ, Congregational (Grinnell, Iowa)."}
+  Warning: Unexpected structure detected in the data. The element could not be processed.
+    Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Religion."}

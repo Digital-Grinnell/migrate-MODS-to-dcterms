@@ -1,0 +1,85 @@
+Object PID: grinnell:12205   03-Apr-2020 15:21 
+
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Grinnell College. Sociology Department."}
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Grinnell College."}
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Alumni and alumnae."}
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "History."}
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "United Church of Christ, Congregational (Grinnell, Iowa)."}
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": "Religion."}
+
+Remaining elements are: 
+{
+  "mods": {
+    "@xmlns": "http://www.loc.gov/mods/v3",
+    "@xmlns:mods": "http://www.loc.gov/mods/v3",
+    "@xmlns:xlink": "http://www.w3.org/1999/xlink",
+    "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "abstract": " ==> Abstract",
+    "accessCondition": " ==> Access_Condition",
+    "extension": {
+      "CModel": " ==> CMODEL",
+      "hidden_creators": " ==> Hidden_Creator",
+      "primarySort": " ==> Primary_Sort",
+      "pull_quote": " ==> Pull_Quotes"
+    },
+    "genre": " ==> Genre",
+    "identifier": [
+      " ==> Local_Identifier",
+      " ==> Handle"
+    ],
+    "language": {
+      "languageTerm": " ==> Language_Names~Codes"
+    },
+    "name": [
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Corporate_Names~Roles"
+    ],
+    "originInfo": {
+      "dateCreated": " ==> Index_Date",
+      "dateOther": " ==> Other_Date~Display_Label",
+      "publisher": " ==> Publisher"
+    },
+    "physicalDescription": {
+      "digitalOrigin": " ==> Digital_Origin",
+      "extent": " ==> Extent",
+      "internetMediaType": " ==> MIME_Type"
+    },
+    "relatedItem": " ==> Related_Items~Types",
+    "subject": [
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "Grinnell College. Sociology Department."
+      },
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "Grinnell College."
+      },
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "Alumni and alumnae."
+      },
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "History."
+      },
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "United Church of Christ, Congregational (Grinnell, Iowa)."
+      },
+      {
+        "@authority": " ==> LCSH_Subjects",
+        "topic": "Religion."
+      }
+    ],
+    "titleInfo": " ==> Title",
+    "typeOfResource": " ==> Type_of_Resource"
+  }
+}

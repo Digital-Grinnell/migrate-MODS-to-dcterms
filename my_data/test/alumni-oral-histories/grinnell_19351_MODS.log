@@ -1,0 +1,64 @@
+Object PID: grinnell:19351   03-Apr-2020 15:21 
+
+Warning: Unexpected structure detected in the data. The element could not be processed.
+  Unexpected Element: {"@authority": " ==> LCSH_Subjects", "topic": ["Grinnell College.", "Alumni and alumnae.", "History.", "Forum (Grinnell, Iowa).", "Grinnell College. History Department.", "Grinnell College Political Scinece Department.", "Joe Rosenfield '25 Center (Grinnell, Iowa)", "Cleveland Hall (Grinnell, Iowa)"]}
+
+Remaining elements are: 
+{
+  "mods": {
+    "@xmlns": "http://www.loc.gov/mods/v3",
+    "@xmlns:mods": "http://www.loc.gov/mods/v3",
+    "@xmlns:xlink": "http://www.w3.org/1999/xlink",
+    "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "abstract": " ==> Abstract",
+    "accessCondition": " ==> Access_Condition",
+    "extension": {
+      "dg_importIndex": " ==> Import_Index",
+      "hidden_creators": " ==> Hidden_Creator",
+      "primarySort": " ==> Primary_Sort",
+      "pull_quote": " ==> Pull_Quotes"
+    },
+    "genre": " ==> Genre",
+    "identifier": [
+      " ==> Local_Identifier",
+      " ==> Handle"
+    ],
+    "language": {
+      "languageTerm": " ==> Language_Names~Codes"
+    },
+    "name": [
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Personal_Names~Roles",
+      " ==> Corporate_Names~Roles"
+    ],
+    "originInfo": {
+      "dateCreated": " ==> Index_Date",
+      "dateOther": " ==> Other_Date~Display_Label",
+      "publisher": " ==> Publisher"
+    },
+    "physicalDescription": {
+      "digitalOrigin": " ==> Digital_Origin",
+      "extent": " ==> Extent",
+      "internetMediaType": " ==> MIME_Type"
+    },
+    "relatedItem": " ==> Related_Items~Types",
+    "subject": {
+      "@authority": " ==> LCSH_Subjects",
+      "topic": [
+        "Grinnell College.",
+        "Alumni and alumnae.",
+        "History.",
+        "Forum (Grinnell, Iowa).",
+        "Grinnell College. History Department.",
+        "Grinnell College Political Scinece Department.",
+        "Joe Rosenfield '25 Center (Grinnell, Iowa)",
+        "Cleveland Hall (Grinnell, Iowa)"
+      ]
+    },
+    "titleInfo": " ==> Title",
+    "typeOfResource": " ==> Type_of_Resource"
+  }
+}
