@@ -6,13 +6,13 @@
 # See https://docs.python-guide.org/scenarios/xml/
 
 # import community packages
-import os, glob, xmltodict, mimetypes
+import os, glob, xmltodict, mimetypes, argparse
 
 # import my packages
 import my_data, my_colorama, mods, constant
 
-# initialize the mimetypes pacakge
-mimetypes.init()
+# initialize the mimetypes package
+mimetypes.init( )
 
 ## --- Functions ---------------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ def getPID(path):
   return pid
 
 
-## getCollectoinPID( ) ---------------------------------------------------------------
+## getCollectionPID( ) ---------------------------------------------------------------
 ## Turn an XML filename/path into a collection PID
 
 def getCollectionPID(path):
@@ -53,8 +53,34 @@ def clean(x):
   x2 = x1.replace(':href', '')
   return x2
 
+## is_mapped(field) ---------------------------------------------------------------
+## Checks if field is or is "not_mapped" and returns True or False
 
-def process_collection(collection, csv_file, collection_log_file):  # do everything related to a specified collection
+def is_mapped(field):
+  if field in my_data.Data.not_mapped:
+    mods.skip(field)
+    return False
+  else:
+    return True
+
+## check_special(collection, field) ---------------------------------------------------------------
+## Checks if field is "not_mapped" or returns any special handling target for a particular collection and field
+
+def check_special(collection, field):
+  if is_mapped(field):
+    if collection in my_data.Data.special_handling.keys():
+      rules = my_data.Data.special_handling[collection]
+      if field in rules.keys():
+        return rules[field]
+  return False  
+
+
+# Ok, this is where the rubber meets the road!  Modified in Fall 2023 for output to an Alma-D dcterms 
+# compatible .csv export !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# See https://docs.google.com/spreadsheets/d/1rw9osrvGSg9fIQnQzCCILn-66mDOMD2VttT-yYkQH4E/ for mapping details.
+# Lines below that reflect mapping are tagged with '### !Map'
+
+def process_collection(collection, collection_id, csv_file, collection_log_file):  # do everything related to a specified collection
   import csv, my_data, mods, json, time, tempfile
   
   import_index = 0;
@@ -68,15 +94,15 @@ def process_collection(collection, csv_file, collection_log_file):  # do everyth
     my_data.Data.csv_row = ['']*len(my_data.Data.csv_headings)   # initialize the global csv_row to an empty list
 
     pid = getPID(xml_filename)          # get the object PID
-    mods.process_simple(pid, 'PID')     # write it to csv_row
-    mods.process_simple(constant.HREF + pid, 'OBJ')        # write active link to Digital.Grinnell in the 'OBJ' column
+    mods.process_simple(pid, 'originating_system_id')       # write it to csv_row ### !Map
+    mods.process_simple(constant.HREF + pid, 'link-to-DG')  # write active link to Digital.Grinnell 
 
     # this code does not work...nearly impossible to open a local file from a Google Sheet
     # log_file_link = './' + pid.replace(':','_') + '_MODS.log'
     # mods.process_simple(log_file_link, 'SEQUENCE')        # write file: link to the object log file into 'SEQUENCE'
 
-    parent = getCollectionPID(collection)     # build the parent collection PID
-    mods.process_simple(parent, 'PARENT')     # write it to csv_row
+    parent = collection_id                           # save the parent collection id
+    mods.process_simple(parent, 'collection_id')     # write it to csv_row  ### !Map
 
     my_data.Data.object_log_file = open(my_data.Data.object_log_filename, 'w')
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
@@ -99,120 +125,150 @@ def process_collection(collection, csv_file, collection_log_file):  # do everyth
         import json
         print(json.dumps(doc['mods'], sort_keys=True, indent=2))
 
+      # Processing for specific MODS fields begins here... 
+      # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
       # abstract: process simple, single top-level element
       if 'abstract' in doc['mods']:
-        ok = mods.process_simple(doc['mods']['abstract'], 'Abstract')
-        if ok:
-          doc['mods']['abstract'] = ok
+        if is_mapped('abstract'):
+          ok = mods.process_simple(doc['mods']['abstract'], 'dcterms:abstract')  ### !Map
+          if ok:
+            doc['mods']['abstract'] = ok
 
       # accessCondition: process simple, single top-level element
       if 'accessCondition' in doc['mods']:
-        ok = mods.process_simple(doc['mods']['accessCondition'], 'Access_Condition')
-        if ok:
-          doc['mods']['accessCondition'] = ok
+        if is_mapped('accessCondition'):
+          ok = mods.process_simple(doc['mods']['accessCondition'], 'dcterms:rights')  ### !Map
+          if ok:
+            doc['mods']['accessCondition'] = ok
 
       # classification: process one or more top-level 'classification' elements
       if 'classification' in doc['mods']:
-        if type(doc['mods']['classification']) is list:
-          ok = mods.process_list_dict(doc['mods']['classification'], mods.classification_action)
-        else:
-          ok = mods.process_dict(doc['mods']['classification'], mods.classification_action)
+        if is_mapped('classification'):
+          if type(doc['mods']['classification']) is list:
+            ok = mods.process_list_dict(doc['mods']['classification'], mods.classification_action)
+          else:
+            ok = mods.process_dict(doc['mods']['classification'], mods.classification_action)
           if ok:
-           doc['mods']['classification'] = ok
+            doc['mods']['classification'] = ok
 
       # extension: process one or more top-level 'extension' elements
       if 'extension' in doc['mods']:
-        if type(doc['mods']['extension']) is list:
-          ok = mods.process_list_dict(doc['mods']['extension'], mods.extension_action)
-        else:
-          ok = mods.process_dict(doc['mods']['extension'], mods.extension_action)
+        if is_mapped('extension'):
+          if type(doc['mods']['extension']) is list:
+            ok = mods.process_list_dict(doc['mods']['extension'], mods.extension_action)
+          else:
+            ok = mods.process_dict(doc['mods']['extension'], mods.extension_action)
           if ok:
-           doc['mods']['extension'] = ok
+            doc['mods']['extension'] = ok
 
       # genre: process simple, single top-level element
       if 'genre' in doc['mods']:
-        ok = mods.process_simple(doc['mods']['genre'], 'Genre~AuthorityURI')
-        if ok:
-          doc['mods']['genre'] = ok
+        if is_mapped('genre'):
+          ok = mods.process_multi(doc['mods']['genre'],'dc:type')
+          if ok:
+            doc['mods']['genre'] = ok
 
       # identifier: process one or more top-level 'identifier' elements
       if 'identifier' in doc['mods']:
-        if type(doc['mods']['identifier']) is list:
-          ok = mods.process_list_dict(doc['mods']['identifier'], mods.identifier_action)
-        else:
-          ok = mods.process_dict(doc['mods']['identifier'], mods.identifier_action)
+        if is_mapped('identifier'):
+          if type(doc['mods']['identifier']) is list:
+            ok = mods.process_list_dict(doc['mods']['identifier'], mods.identifier_action)
+          else:
+            ok = mods.process_dict(doc['mods']['identifier'], mods.identifier_action)
           if ok:
-           doc['mods']['identifier'] = ok
+            doc['mods']['identifier'] = ok
 
       # language: process all top-level 'language' elements
       if 'language' in doc['mods']:
-        mods.process_dict_list(doc['mods']['language'], mods.language_action)
+        if is_mapped('language'):
+          ok = mods.process_dict_list(doc['mods']['language'], mods.language_action)
+        if ok:
+          doc['mods']['identifier'] = ok
+
+      # location: process one or more top-level 'location' elements
+      if 'location' in doc['mods']:
+        if is_mapped('location'):
+          if type(doc['mods']['location']) is list:
+            ok = mods.process_list_dict(doc['mods']['location'], mods.location_action)
+          else:
+            ok = mods.process_dict(doc['mods']['location'], mods.location_action)
+          if ok:
+            doc['mods']['location'] = ok
 
       # name: process one or more top-level 'name' elements
       if 'name' in doc['mods']:
-        if type(doc['mods']['name']) is list:
-          ok = mods.process_list_dict(doc['mods']['name'], mods.name_action)
-        else:
-          ok = mods.process_dict(doc['mods']['name'], mods.name_action)
+        if is_mapped('name'):
+          if type(doc['mods']['name']) is list:
+            ok = mods.process_list_dict(doc['mods']['name'], mods.name_action)
+          else:
+            ok = mods.process_dict(doc['mods']['name'], mods.name_action)
           if ok:
             doc['mods']['name'] = ok
 
       # note: process one or more top-level 'note' elements
       if 'note' in doc['mods']:
-        if type(doc['mods']['note']) is list:
-          ok = mods.process_list_dict(doc['mods']['note'], mods.note_action)
-        else:
-          ok = mods.process_dict(doc['mods']['note'], mods.note_action)
-          if ok:
-            doc['mods']['note'] = ok
+        if is_mapped('note'):
+          if type(doc['mods']['note']) is list:
+            ok = mods.process_list_dict(doc['mods']['note'], mods.note_action)
+          else:
+            ok = mods.process_dict(doc['mods']['note'], mods.note_action)
+            if ok:
+              doc['mods']['note'] = ok
 
       # originInfo: process all top-level 'originInfo' elements
       if 'originInfo' in doc['mods']:
-        mods.process_dict(doc['mods']['originInfo'], mods.originInfo_action)
+        if is_mapped('originInfo'):
+          mods.process_dict(doc['mods']['originInfo'], mods.originInfo_action)
 
       # physicalDescription: process all top-level 'physicalDescription' elements
       if 'physicalDescription' in doc['mods']:
-        mods.process_dict(doc['mods']['physicalDescription'], mods.physicalDescription_action)
+        if is_mapped('physicalDescription'):
+          mods.process_dict(doc['mods']['physicalDescription'], mods.physicalDescription_action)
 
       # relatedItem: process one or more top-level 'relatedItem' elements
       if 'relatedItem' in doc['mods']:
-        if type(doc['mods']['relatedItem']) is list:
-          ok = mods.process_list_dict(doc['mods']['relatedItem'], mods.relatedItem_action)
-        else:
-          ok = mods.process_dict(doc['mods']['relatedItem'], mods.relatedItem_action)
+        if is_mapped('relatedItem'):
+          if type(doc['mods']['relatedItem']) is list:
+            ok = mods.process_list_dict(doc['mods']['relatedItem'], mods.relatedItem_action)
+          else:
+            ok = mods.process_dict(doc['mods']['relatedItem'], mods.relatedItem_action)
           if ok:
-           doc['mods']['relatedItem'] = ok
+            doc['mods']['relatedItem'] = ok
 
       # subject: process one or more top-level 'subject' elements
       if 'subject' in doc['mods']:
-        if type(doc['mods']['subject']) is list:
-          ok = mods.process_list_dict(doc['mods']['subject'], mods.subject_action)
-        else:
-          ok = mods.process_dict(doc['mods']['subject'], mods.subject_action)
+        if is_mapped('subject'):
+          if type(doc['mods']['subject']) is list:
+            ok = mods.process_list_dict(doc['mods']['subject'], mods.subject_action)
+          else:
+            ok = mods.process_dict(doc['mods']['subject'], mods.subject_action)
           if ok:
             doc['mods']['subject'] = ok
 
       # titleInfo: process all top-level 'titleInfo' elements.  May be a dict of elements, or a list of dicts
       if 'titleInfo' in doc['mods']:
-        if type(doc['mods']['titleInfo']) is list:
-          ok = mods.process_list_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
-        else:
-          ok = mods.process_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
-        if ok:
-          doc['mods']['titleInfo'] = ok
+        if is_mapped('titleInfo'):
+          if type(doc['mods']['titleInfo']) is list:
+            ok = mods.process_list_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
+          else:
+            ok = mods.process_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
+          if ok:
+            doc['mods']['titleInfo'] = ok
 
       # typeOfResource: process simple, single top-level element
       if 'typeOfResource' in doc['mods']:
-        ok = mods.process_simple(doc['mods']['typeOfResource'], 'Type_of_Resource~AuthorityURI')
-        if ok:
-          doc['mods']['typeOfResource'] = ok
-
-      # add a link to this object's .log file into WORKSPACE
-      col = mods.column('WORKSPACE')
+        if is_mapped('typeOfResource'):
+          ok = mods.process_simple(doc['mods']['typeOfResource'], 'Type_of_Resource~AuthorityURI')
+          if ok:
+            doc['mods']['typeOfResource'] = ok
+  
+      # add a link to this object's .log file into log-file-link
+      col = mods.column('log-file-link')
       my_data.Data.csv_row[col] = my_data.Data.object_log_filename
       
-      # increment and add import_index to Import_Index column
-      col = mods.column('Import_Index')
+      # increment and add import_index to import-index column
+      col = mods.column('import-index')
       import_index += 1
       my_data.Data.csv_row[col] = import_index
 
@@ -220,7 +276,7 @@ def process_collection(collection, csv_file, collection_log_file):  # do everyth
       csv_writer.writerow(my_data.Data.csv_row)
 
       # print what's left of 'doc'
-      msg = "Remaining elements are: "
+      msg = "Transform results are: "
       if constant.DEBUG:
         my_colorama.cyan('------ ' + msg)
       my_data.Data.object_log_file.write( '\n' + msg + '\n')
@@ -249,9 +305,25 @@ def process_collection(collection, csv_file, collection_log_file):  # do everyth
 
 ## === MAIN ======================================================================================
 
-# Run this script from a working directory that contains a collection's exported MODS.xml files.
+# Get the runtime args...
+parser = argparse.ArgumentParser( )
+parser.add_argument('--collection_path', '-cp', nargs=1,
+  help="The path to the collection's exported MODS .xml files", required=False, default="/collection_xml")
+parser.add_argument('--collection_id', '-id', nargs=1,
+  help="The numeric Alma (MMS) id of the parent collection", required=False, default="81294713150004641")
+args = parser.parse_args( )
 
-collection = os.getcwd().rsplit('/', 1)[-1]
+# cd to the collection_path directory and go
+cwd = os.getcwd( )
+path = args.collection_path
+try:
+  os.chdir(path[0])
+except IOError as e:
+  print('Operation failed: %s' % e.strerror)
+  exit( )
+
+collection = os.getcwd( ).rsplit('/', 1)[-1]
+collection_id = args.collection_id
 
 if constant.DEBUG:
   msg = "-- Now working in collection directory: %s" % collection
@@ -264,7 +336,9 @@ my_data.Data.collection_log_filename = 'collection.log'
 # open files for this collection and GO!
 try:
   with open(csv_filename, 'w', newline='') as csv_file, open(my_data.Data.collection_log_filename, 'w') as my_data.Data.collection_log_file:
-    process_collection(collection, csv_file, my_data.Data.collection_log_file)
+    process_collection(collection, collection_id, csv_file, my_data.Data.collection_log_file)
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
 
+# cd back to the original working directory 
+os.chdir(cwd)

@@ -1,6 +1,6 @@
 DONE = ' ==> '
 HREF = 'https://digital.grinnell.edu/islandora/object/'
-DEBUG = False
+DEBUG = True
 LINK = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/'
 
 # COLLECTIONS_PATH = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/*'
@@ -11,3 +11,5 @@ LINK = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/'
 # COLLECTIONS_PATH = '/Volumes/March2020/exported-MODS/*'
 
 NEEDLES = ['Remaining elements are:', 'xmlns', 'xsi', '==>']
+
+CREATORS = ['creator','author','artist','composer']
