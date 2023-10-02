@@ -224,7 +224,12 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       # physicalDescription: process all top-level 'physicalDescription' elements
       if 'physicalDescription' in doc['mods']:
         if is_mapped('physicalDescription'):
-          mods.process_dict(doc['mods']['physicalDescription'], mods.physicalDescription_action)
+          if type(doc['mods']['physicalDescription']) is list:
+            ok = mods.process_list_dict(doc['mods']['physicalDescription'], mods.physicalDescription_action)
+          else:
+            ok = mods.process_dict(doc['mods']['physicalDescription'], mods.physicalDescription_action)
+          if ok:
+            doc['mods']['physicalDescription'] = ok
 
       # relatedItem: process one or more top-level 'relatedItem' elements
       if 'relatedItem' in doc['mods']:
@@ -259,7 +264,9 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       # typeOfResource: process simple, single top-level element
       if 'typeOfResource' in doc['mods']:
         if is_mapped('typeOfResource'):
-          ok = mods.process_simple(doc['mods']['typeOfResource'], 'Type_of_Resource~AuthorityURI')
+          DCMI = mods.make_DCMIType(doc['mods']['typeOfResource'])
+          if DCMI:
+            ok = mods.process_simple(DCMI, 'dcterms:type.dcterms:DCMIType')    ### !Map
           if ok:
             doc['mods']['typeOfResource'] = ok
   

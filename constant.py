@@ -13,3 +13,5 @@ LINK = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/'
 NEEDLES = ['Remaining elements are:', 'xmlns', 'xsi', '==>']
 
 CREATORS = ['creator','author','artist','composer']
+
+DCMITypes = ['Collection','Dataset','Event','Image','InteractiveResource','MovingImage','PhysicalObject','Service','Software','Sound','StillImage','Text']

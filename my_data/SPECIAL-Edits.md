@@ -2,6 +2,8 @@
 
 ## postcards
 
+### Change errant /mods/classification> tags to /mods/location
+
 Note that the following `regex` has NOT been tested!
 
 find: `^<classification authority=\"local\" (type=\"mixed\")?>(.+)</classification>`  
@@ -31,3 +33,10 @@ replace:
 </shelfLocator>
 </location>
 ```
+
+### Remove errant /physicalDescription/extent@displayLabel='Digital Extent' tags
+
+find: <extent displayLabel="Digital Extent".+<\/extent>
+replace: NONE
+
+

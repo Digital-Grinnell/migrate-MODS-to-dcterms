@@ -1,6 +1,16 @@
 
 # common functions ---------------------------------------------------------------------
 
+def make_DCMIType(type):
+  import constant, my_colorama
+  if type in constant.DCMITypes:
+    return type
+  elif 'still' in type:
+    return 'StillImage'
+  else:
+    my_colorama.red("No DCMIType match found for '%s'" % type)
+    return False  
+
 
 def clean_empty(d):
   if not isinstance(d, (dict, list)):
@@ -128,7 +138,7 @@ def multi(key, value):
         my_data.Data.csv_row[col] += ' | ' + v
       else:
         my_data.Data.csv_row[col] = v
-    return constant.DONE + key
+    return v + constant.DONE + key
   else:
     if type(value) is not str:
       value = value['#text']
@@ -137,7 +147,7 @@ def multi(key, value):
       my_data.Data.csv_row[col] += ' | ' +  value
     else:
       my_data.Data.csv_row[col] = value
-  return constant.DONE + key
+  return value + constant.DONE + key
 
 
 # single(key,value)
@@ -155,7 +165,7 @@ def single(key, value):
     return False
   else:
     my_data.Data.csv_row[col] = value
-  return constant.DONE + key
+  return value + constant.DONE + key
 
 
 def append(key, value):
@@ -166,7 +176,7 @@ def append(key, value):
   nc = len(my_data.Data.csv_row[col])
   if nc > 0:
     my_data.Data.csv_row[col] += ' ~ ' + value
-    return constant.DONE + key
+    return value + constant.DONE + key
   else:
     if constant.DEBUG:
       my_colorama.red("------ append() called but the target cell in column(%s) is empty!" % key)
@@ -421,7 +431,7 @@ def originInfo_action(info):
   c = len(info)
   try:
     if 'dateCreated' in info:
-      ok = single('Index_Date', info['dateCreated'])     ### !Map
+      ok = single('dcterms:created', info['dateCreated'])     ### !Map
       if ok:
         info['dateCreated'] = ok
         c = c - 1
@@ -435,7 +445,7 @@ def originInfo_action(info):
       else:
         skip(info['dateIssued'])
     if 'publisher' in info:
-      ok = single('dcterms:publisher', info['publisher'])     ### !Map
+      ok = multi('dcterms:publisher', info['publisher'])     ### !Map
       if ok:
         info['publisher'] = ok
         c = c - 1
@@ -461,18 +471,18 @@ def physicalDescription_action(desc):
   import my_colorama
   try:
     if 'digitalOrigin' in desc:
-      ok = single('Digital_Origin', desc['digitalOrigin'])
+      ok = single('dc:format', desc['digitalOrigin'])    ### !Map
       if ok:
         desc['digitalOrigin'] = ok
       else:
         skip(desc['digitalOrigin'])
     if 'extent' in desc:
-      ok = single('dcterms:extent', desc['extent'])
+      ok = single('dcterms:extent', desc['extent'])      ### !Map
       if ok:
         desc['extent'] = ok
       else:
         skip(desc['extent'])
-    if 'form' in desc:
+    if 'form' in desc:                                   ### !Map
       ok = single('dcterms:medium', desc['form'])
       if ok:
         desc['form'] = ok
@@ -501,9 +511,12 @@ def relatedItem_action(item):
   try:
     if '@type' in item:
       if item['@type'] == 'isPartOf':
-        return multi('dcterms:isPartOf', item['titleInfo']['title'])    ### !Map
+        ok = multi('dcterms:isPartOf', item['titleInfo']['title'])    ### !Map
     else:
-      return multi('dcterms:relation', item['titleInfo']['title'])      ### !Map
+      ok = multi('dc:relation', item['titleInfo']['title'])      ### !Map
+    if ok:
+      item['titleInfo']['title'] = ok
+      return ok  
     return skip(item)
   except Exception as e:
     exception(e, item)
