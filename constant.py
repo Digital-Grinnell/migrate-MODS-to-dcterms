@@ -1,6 +1,6 @@
 DONE = ' ==> '
 HREF = 'https://digital.grinnell.edu/islandora/object/'
-DEBUG = True
+DEBUG = False
 LINK = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/'
 
 # COLLECTIONS_PATH = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/*'
@@ -14,4 +14,6 @@ NEEDLES = ['Remaining elements are:', 'xmlns', 'xsi', '==>']
 
 CREATORS = ['creator','author','artist','composer']
 
-DCMITypes = ['Collection','Dataset','Event','Image','InteractiveResource','MovingImage','PhysicalObject','Service','Software','Sound','StillImage','Text']
+DCMITypes = ['Collection','Dataset','Event','Image','Interactive Resource','Moving Image','Physical Object','Service','Software','Sound','Still Image','Text']
+
+GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit?usp=sharing'

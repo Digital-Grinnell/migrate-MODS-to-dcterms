@@ -35,6 +35,7 @@ class Data:
     'dc:date',
     'dcterms:created',
     'dcterms:issued',
+    'dcterms:dateSubmitted',
     'dcterms:dateAccepted',
     'dc:type',
     'dc:format',
@@ -111,7 +112,7 @@ class Data:
     'file_name_1': '',
     'file_label_1': '',
     'file_name_2': '',
-    'file_label_': ''
+    'file_label_2': ''
   }
 
 

@@ -6,7 +6,7 @@ def make_DCMIType(type):
   if type in constant.DCMITypes:
     return type
   elif 'still' in type:
-    return 'StillImage'
+    return 'Still Image'
   else:
     my_colorama.red("No DCMIType match found for '%s'" % type)
     return False  
@@ -57,13 +57,10 @@ def cleanup(tmp):
       except Exception as e:
         my_colorama.red("-- Processing: %s" % my_data.Data.object_log_filename)
         my_colorama.red("  Exception: %s" % e)
-
+        raise
 
   except Exception as e:
-    my_colorama.red("Exception: %s" % e)
-    raise
-
-
+    pass                         # don't kill the messenger (the .remainder file) here!
 
 
 def prt(tag):
@@ -458,6 +455,13 @@ def originInfo_action(info):
         c = c - 1
         # if '@displayLabel' in info['dateOther']:
         #   ok = append('Other_Date~Display_Label', info['dateOther']['@displayLabel'])
+      else:
+        skip(info['dateOther'])
+    if 'dateCaptured' in info:
+      ok = single('dcterms:dateSubmitted', info['dateCaptured'])    ### !Map
+      if ok:
+        info['dateCaptured'] = ok
+        c = c - 1
       else:
         skip(info['dateOther'])
     if c > 0:

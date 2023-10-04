@@ -4,7 +4,30 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-
+    {
+      "name": "Python: expand-csv",
+      "type": "python",
+      "request": "launch",
+      "program": "expand-csv.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "--collection_path",
+        "./data/postcards"
+      ]
+    },
+    {
+      "name": "Python: to-google-sheet",
+      "type": "python",
+      "request": "launch",
+      "program": "to-google-sheet.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "--collection_path",
+        "./data/postcards"
+      ]
+    },
     {
       "name": "Python: main",
       "type": "python",
@@ -12,7 +35,10 @@
       "program": "main.py",
       "console": "integratedTerminal",
       "justMyCode": true,
-      "args": ["--collection_path", "/Users/mark/Downloads/postcards"]
+      "args": [
+        "--collection_path",
+        "./data/postcards"
+      ]
     }
   ]
 }

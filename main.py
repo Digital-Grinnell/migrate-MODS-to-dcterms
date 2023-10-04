@@ -125,6 +125,9 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
         import json
         print(json.dumps(doc['mods'], sort_keys=True, indent=2))
 
+      
+
+
       # Processing for specific MODS fields begins here... 
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
