@@ -95,7 +95,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
     pid = getPID(xml_filename)          # get the object PID
     mods.process_simple(pid, 'originating_system_id')       # write it to csv_row ### !Map
-    mods.process_simple(constant.HREF + pid, 'link-to-DG')  # write active link to Digital.Grinnell 
+    # mods.process_simple(constant.HREF + pid, 'link-to-DG')  # write active link to Digital.Grinnell 
 
     # this code does not work...nearly impossible to open a local file from a Google Sheet
     # log_file_link = './' + pid.replace(':','_') + '_MODS.log'
@@ -107,6 +107,19 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     my_data.Data.object_log_file = open(my_data.Data.object_log_filename, 'w')
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
     my_data.Data.object_log_file.write("Object PID: %s   %s \n\n" % (pid, current_time))
+
+    # Look for the object's corresponding *_OBJ.<extension> file.  
+    # If found, write the OBJ filename into the 'file_name_1' column
+    obj_filename = xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
+    obj_path = "./OBJ/" + xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
+    found = False
+    for obj_file in glob.glob(obj_path):
+      found = True
+      my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
+      mods.process_simple(obj_file, 'file_name_1')     # write it to csv_row    ### !Map
+    if not found:
+      my_data.Data.object_log_file.write("NO %s OBJ file found!\n" % obj_path)
+      mods.process_simple(constant.NO_FILE_ERROR, 'file_name_1')     # alert the CSV file    ### !Map
 
     with open(xml_filename, 'r') as xml_file:
       current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime())
@@ -141,7 +154,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       # accessCondition: process simple, single top-level element
       if 'accessCondition' in doc['mods']:
         if is_mapped('accessCondition'):
-          ok = mods.process_simple(doc['mods']['accessCondition'], 'dcterms:rights')  ### !Map
+          ok = mods.process_simple(doc['mods']['accessCondition'], 'dc:rights')  ### !Map
           if ok:
             doc['mods']['accessCondition'] = ok
 
@@ -167,10 +180,18 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
       # genre: process simple, single top-level element
       if 'genre' in doc['mods']:
+        ok = False
+        g = doc['mods']['genre']
         if is_mapped('genre'):
-          ok = mods.process_multi(doc['mods']['genre'],'dc:type')
-          if ok:
-            doc['mods']['genre'] = ok
+          DCMI = mods.check_DCMITypes(g)
+          if DCMI:
+            (term, score) = DCMI
+            ok = mods.process_multi(term, 'dcterms:type.dcterms:DCMIType')    ### !Map
+          else:
+            ok = mods.process_multi("genre: " + g, 'dc:description')    ### !Map
+        if ok:
+          doc['mods']['genre'] = ok
+
 
       # identifier: process one or more top-level 'identifier' elements
       if 'identifier' in doc['mods']:
@@ -266,21 +287,27 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
       # typeOfResource: process simple, single top-level element
       if 'typeOfResource' in doc['mods']:
+        t = doc['mods']['typeOfResource']
         if is_mapped('typeOfResource'):
-          DCMI = mods.make_DCMIType(doc['mods']['typeOfResource'])
+          DCMI = mods.check_DCMITypes(t)
           if DCMI:
-            ok = mods.process_simple(DCMI, 'dcterms:type.dcterms:DCMIType')    ### !Map
+            (term, score) = DCMI
+            ok = mods.process_multi(term, 'dcterms:type.dcterms:DCMIType')    ### !Map
           if ok:
             doc['mods']['typeOfResource'] = ok
+          else:
+            my_data.Data.object_log_file.write("No fuzzy match found in DCMITypes for '%s' \n" % t)
+
   
-      # add a link to this object's .log file into log-file-link
-      col = mods.column('log-file-link')
-      my_data.Data.csv_row[col] = my_data.Data.object_log_filename
+      # # add a link to this object's .log file into log-file-link
+      # col = mods.column('log-file-link')
+      # my_data.Data.csv_row[col] = my_data.Data.object_log_filename
       
-      # increment and add import_index to import-index column
-      col = mods.column('import-index')
+      # increment and add to the google_sheet_source index 
+      # write the result and the Google Sheet URL to the "google_sheet_source" cell
+      col = mods.column('googlesheetsource')
       import_index += 1
-      my_data.Data.csv_row[col] = import_index
+      my_data.Data.csv_row[col] = str(import_index) + "  " + constant.GOOGLE_SHEET
 
       # all done with processing... write out the csv_row[]
       csv_writer.writerow(my_data.Data.csv_row)

@@ -13,15 +13,14 @@ class Data:
     'extension'
   ]
 
-  ## ordered list of csv column headings for Alma-D
+  ## ordered list of csv column headings for Alma-D   These MUST ALL BE IN OUR PROFILE otherwise
+  ## we will be plagued with validation errors!
   csv_headings = [
-    'import-index',
+    'googlesheetsource',
     'group_id',
     'collection_id',
     'mms_id',
     'originating_system_id',
-    'link-to-DG',
-    'log-file-link',
     'dc:title',
     'dcterms:alternative',
     'dc:creator',
@@ -52,7 +51,7 @@ class Data:
     'dcterms:spatial',
     'dcterms:spatial.dcterms:Point',
     'dcterms:temporal',
-    'dcterms:rights',
+    'dc:rights',
     'dc:source',
     'bib custom field',
     'rep_label',
@@ -67,53 +66,6 @@ class Data:
     'file_name_2',
     'file_label_'
   ]
-
-  ## empty ordered dict of csv column headings for Alma-D -- I don't think this is used anymore?
-  csv_row_structure = {
-    'group_id': '',
-    'collection_id': '',
-    'mms_id': '',
-    'originating_system_id': '',
-    'not_used': '',
-    'dc:title': '',
-    'dcterms:alternative': '',
-    'dc:creator': '',
-    'dc:contributor': '',
-    'dc:subject': '',
-    'dcterms:subject.dcterms:LCSH': '',
-    'dc:description': '',
-    'dcterms:abstract': '',
-    'dc:publisher': '',
-    'dc:date': '',
-    'dcterms:created': '',
-    'dcterms:issued': '',
-    'dc:type': '',
-    'dc:format': '',
-    'dcterms:extent': '',
-    'dc:identifier': '',
-    'dcterms:identifier.dcterms:URI': '',
-    'dc:language': '',
-    'dc:relation': '',
-    'dcterms:isPartOf': '',
-    'dc:coverage': '',
-    'dcterms:spatial': '',
-    'dcterms:spatial.dcterms:Point': '',
-    'dcterms:temporal': '',
-    'dcterms:rights': '',
-    'dc:source': '',
-    'bib custom field': '',
-    'rep_label': '',
-    'rep_public_note': '',
-    'rep_access_rights': '',
-    'rep_usage_type': '',
-    'rep_library': '',
-    'rep_note': '',
-    'rep_custom field': '',
-    'file_name_1': '',
-    'file_label_1': '',
-    'file_name_2': '',
-    'file_label_2': ''
-  }
 
 
   ## global csv_row

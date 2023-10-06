@@ -145,9 +145,9 @@ try:
     headings = []
     
     # open a new expanded CSV for writing
-    expanded_filename = collection + '-expanded.csv'
+    expanded_filename = 'values.csv'   ## Alma-sense insists on using this name!
     with open(expanded_filename, 'w') as expanded_csv:
-      csv_writer = csv.writer(expanded_csv, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+      csv_writer = csv.writer(expanded_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
       # build a list of expanded columns, duplicating those with counter > 1
       for col in counter:

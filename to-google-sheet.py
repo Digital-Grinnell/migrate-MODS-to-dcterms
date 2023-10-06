@@ -2,22 +2,21 @@
 # 
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
-
-# See https://docs.python-guide.org/scenarios/xml/
-
+#
+# The target Google Sheet is: https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU
+#
 # import community packages
-import gspread, time
-import os, glob, xmltodict, mimetypes, argparse
+import gspread, time, os, argparse
 
 # import my packages
-import my_data, my_colorama, mods, constant
+import my_data, my_colorama, constant
 
 # This function does nearly everything...
 def collection_to_google(collection, csv_file, log_file):
   ## The Google Sheet stuff...
 
   sa = gspread.service_account()
-  sh = sa.open_by_url('https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit#gid=0')
+  sh = sa.open_by_url(constant.GOOGLE_SHEET)
 
   try:
     wks = sh.worksheet(collection)

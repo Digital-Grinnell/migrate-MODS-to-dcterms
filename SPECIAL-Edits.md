@@ -12,4 +12,8 @@ replace: `<location>\n  <shelfLocator>$2</shelfLocator>\n</location>`
 find: <extent displayLabel="Digital Extent".+<\/extent>
 replace: NONE
 
+### Remove any "empty" MODS tags
+
+find: <location>\n.+<shelfLocator></shelfLocator>\n.+<\/location>
+replace: NONE
 

@@ -12,7 +12,7 @@ New `AWS Access Key ID` and `AWS Secret Access Key` were generated and shared by
 
 The _AWS S3 CLI_ (command line interface) was successfully installed on MacBook Pro _MA10713_ in July 2023.  Installation guidance was provided by [awscli](https://formulae.brew.sh/formula/awscli), the Homebrew formulae for MacBook installation.  The [AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3/) provides a complete list and explanation of available commands.  With the _AWS S3 CLI_ installed and configured we can list the contents of our upload directory like so:  
 
-```
+```zsh
 ╭─mcfatem@MAC02FK0XXQ05Q ~/MIGRATION/preliminary-testing 
 ╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize      
 2023-07-05 15:11:45    0 Bytes 01GCL_INST/upload/5457616230004641/eghxpgf4afoqo2s6b4aiy/.lock
@@ -33,7 +33,7 @@ Total Objects: 11
 
 Everything listed above is from previous use of the Alma Digital Uploader and all were deleted using single-file `rm` _AWS S3 CLI_ commands on 10-July-2023.  For example: 
 
-```
+```zsh
 ╭─mcfatem@MAC02FK0XXQ05Q ~/MIGRATION/preliminary-testing 
 ╰─$ aws s3 rm s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5457616230004641/eghxpgf4afoqo2s6b4aiy/.lock            
 delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5457616230004641/eghxpgf4afoqo2s6b4aiy/.lock
@@ -48,7 +48,7 @@ delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/54576162300046
 
 After removing all the existing files...  
 
-```
+```zsh
 ╭─mcfatem@MAC02FK0XXQ05Q ~/MIGRATION/preliminary-testing 
 ╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize                                
 
@@ -60,7 +60,7 @@ Total Objects: 0
 
 The most useful _AWS S3 CLI_ commands like `cp`, `mv`, and `rm` are single-file operations, they operate on only one file at a time.  However, these can be combined with the `--recursive` option to effect changes in bulk.  For example...  
 
-```
+```zsh
 ╭─mcfatem@MAC02FK0XXQ05Q ~/MIGRATION/preliminary-testing 
 ╰─$ aws s3 rm s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/preliminary-testing/ --recursive         
 delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/preliminary-testing/d.csv

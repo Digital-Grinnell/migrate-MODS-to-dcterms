@@ -1,17 +1,6 @@
 
 # common functions ---------------------------------------------------------------------
 
-def make_DCMIType(type):
-  import constant, my_colorama
-  if type in constant.DCMITypes:
-    return type
-  elif 'still' in type:
-    return 'Still Image'
-  else:
-    my_colorama.red("No DCMIType match found for '%s'" % type)
-    return False  
-
-
 def clean_empty(d):
   if not isinstance(d, (dict, list)):
     return d
@@ -119,6 +108,31 @@ def skip(tag):
   # my_data.Data.csv_row[col] += msg + ', '
   
   return False            # always returns False !
+
+
+# check_DCMITypes(value)
+# The /mods/genre and /mods/typeOfResource elements may need special handling, do it here.
+# https://www.loc.gov/standards/mods/mods-dcsimple.html indicates that both of these MODS terms should
+# map to dc:type, and https://www.dublincore.org/specifications/dublin-core/usageguide/qualifiers/ suggests 
+# that dcterms:type.dcterms:DCMIType can be used for terms that are compliant with DCMI 
+# vocabulary (see https://www.dublincore.org/specifications/dublin-core/dcmi-type-vocabulary/). 
+#
+# This function will check the genre or typeOfResource input "value" and...
+#   - If "value" matches (fuzzy) a valid dcterms:DCMIType vocabulary element, that DCMIType term is returned.
+#   - If "value" does not match... the function returs False where
+#       "genre: <value>" is appended to dc:desciption (it becomes a "note")
+#
+def check_DCMITypes(value):
+  import constant, my_colorama
+  from fuzzywuzzy import fuzz, process
+  DCMI = process.extractOne(value, constant.DCMITypes, score_cutoff=constant.TARGET_LEVEHSHTEIN_RATIO)
+  if not DCMI or DCMI == "None":
+    my_colorama.red("No DCMIType match found for '%s'" % value)
+    return False
+  else:
+    return DCMI
+
+
 
 # multi(key,value)
 # Called when adding 'value' to a multi-valued target column 'key'
@@ -458,7 +472,8 @@ def originInfo_action(info):
       else:
         skip(info['dateOther'])
     if 'dateCaptured' in info:
-      ok = single('dcterms:dateSubmitted', info['dateCaptured'])    ### !Map
+      # ok = single('dcterms:dateSubmitted', info['dateCaptured'])    ### !Map
+      ok = single('rep_note', "dateCaptured: " + info['dateCaptured'])    ### !Map
       if ok:
         info['dateCaptured'] = ok
         c = c - 1
