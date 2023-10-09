@@ -1,9 +1,14 @@
-# Run this script from a working directory that contains a collection's mods.csv file.
+# Run this script from a working directory that contains a collection's mods.csv file, 
+# really a TSV (tab-delimited file) presumably exported from Digital.Grinnell.  The script will
+# populate or create a worksheet/tab, with the same name as the collection, in our 
+# constant.GOOGLE_SHEET.  Stakeholders should use that worksheet to review AND edit any data 
+# that needs attention.  
 # 
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
 #
-# The target Google Sheet is: https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU
+# The target Google Sheet is specified in constant.GOOGLE_SHEET, currently: 
+# https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU
 #
 # import community packages
 import gspread, time, os, argparse

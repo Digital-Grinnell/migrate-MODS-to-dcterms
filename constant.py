@@ -21,3 +21,5 @@ TARGET_LEVEHSHTEIN_RATIO = 90
 GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit?usp=sharing'
 
 NO_FILE_ERROR = "Attention: No corresponding OBJ file found!"
+
+TEMP_CSV = "temporary.csv"

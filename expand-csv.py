@@ -1,12 +1,14 @@
-# Run this script from a working directory that contains a collection's mods.csv file.
+# This script will export a collection's worksheet/tab from our constant.GOOGLE_SHEET
+# to a "mods-with-edits.csv" file in the local working directory.  That CSV is then 
+# expanded to a new "values.csv" file ready for ingest into Alma-Digital.
 # 
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
-
+#
 # See https://docs.python-guide.org/scenarios/xml/
 
 # import community packages
-import csv, time, os, argparse
+import csv, time, os, argparse, gspread
 
 # import my packages
 import my_data, my_colorama, constant
@@ -17,7 +19,7 @@ def analyze_csv(collection, csv_file, log_file):
   my_data.Data.collection_log_file.write("analyze_csv: Beginning analysis of collection '%s'\n" % collection)
 
   # setup to read from the CSV
-  reader = csv.reader(csv_file, delimiter='\t')
+  reader = csv.reader(csv_file)
 
   # Iterate over each row in the csv file using reader object
   for idx, row in enumerate(reader):
@@ -109,7 +111,7 @@ def analyze_csv(collection, csv_file, log_file):
 # Get the runtime args...
 parser = argparse.ArgumentParser( )
 parser.add_argument('--collection_path', '-cp', nargs=1,
-  help="The path to the collection's exported mods.csv file", required=False, default="/collection_xml")
+  help="The local path of the collection to be processed", required=False, default="/collection_xml")
 args = parser.parse_args( )
 
 # cd to the collection_path directory and go
@@ -127,21 +129,44 @@ if constant.DEBUG:
   msg = "-- Now working in collection directory: %s" % collection
   my_colorama.blue(msg)
 
-# open the mods.csv file 
-csv_filename = 'mods.csv'
+# csv_filename = 'mods.csv'
 log_filename = collection + '-expansion.log'
 
 # open files for this collection and GO!
 try:
-  with open(csv_filename, 'r') as csv_file, open(log_filename, 'w') as my_data.Data.collection_log_file:
+  with open(log_filename, 'w') as my_data.Data.collection_log_file:
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
     my_data.Data.collection_log_file.write("%s \n\n" % current_time)
 
-    counter = analyze_csv(collection, csv_file, my_data.Data.collection_log_file)
-    
-    csv_file.close( )
-    my_data.Data.collection_log_file.write("mods.csv is now closed.\n")
-  
+    # open the GOOGLE_SHEET's collection worksheet and dump it into a temporary CSV file 
+    sa = gspread.service_account()
+    sh = sa.open_by_url(constant.GOOGLE_SHEET)
+
+    try:
+      wks = sh.worksheet(collection)
+    except:
+      my_data.Data.collection_log_file.write('WorksheetOperation failed, collection worksheet "%s" does not exist or cannot be opened.' % collection)
+
+    # dump the open GOOGLE_SHEET collection worksheet to a temporary CSV file and open that
+    # file to be analyzed
+    with open(constant.TEMP_CSV, 'w+') as f:
+      writer = csv.writer(f)
+      writer.writerows(wks.get_all_values( ))
+    f.close( )
+
+    # reopen our temporary CSV and GO!
+    try:
+      with open(constant.TEMP_CSV, 'r') as temp_file:
+        my_data.Data.collection_log_file.write("Temporary CSV for collection '%s' has been reopened for reading \n" % collection)
+
+        # analyze the CSV contents 
+        counter = analyze_csv(collection, temp_file, my_data.Data.collection_log_file)
+        temp_file.close( )
+        my_data.Data.collection_log_file.write("%s is now closed.\n" % constant.TEMP_CSV)
+
+    except IOError as e:
+      print('Operation failed: %s' % e.strerror)
+
     headings = []
     
     # open a new expanded CSV for writing
@@ -171,10 +196,10 @@ try:
 
       # csv_writer.writerow(first_col)
 
-      # reopen the csv file for reading
-      with open(csv_filename, 'r') as csv_file:
-        my_data.Data.collection_log_file.write("mods.csv has been reopened.\n")
-        reader = csv.reader(csv_file, delimiter='\t')
+      # reopen the temporary CSV file for reading
+      with open(constant.TEMP_CSV, 'r') as csv_file:
+        my_data.Data.collection_log_file.write("%s has been reopened.\n" % constant.TEMP_CSV)
+        reader = csv.reader(csv_file)
 
         # Iterate over each row in the csv file using reader object
         # process each row of the csv, expanding cells that contain bar delimeters
