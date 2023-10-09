@@ -85,7 +85,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
   
   import_index = 0;
 
-  csv_writer = csv.writer(csv_file, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+  csv_writer = csv.writer(csv_file, quotechar='"', quoting=csv.QUOTE_MINIMAL)
   csv_writer.writerow(my_data.Data.csv_headings)
 
   # loop on each .xml file in this collection directory; each .xml file represents one row in the csv
@@ -101,7 +101,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     # log_file_link = './' + pid.replace(':','_') + '_MODS.log'
     # mods.process_simple(log_file_link, 'SEQUENCE')        # write file: link to the object log file into 'SEQUENCE'
 
-    parent = collection_id                           # save the parent collection id
+    parent = collection_id[0]                        # save the parent collection id
     mods.process_simple(parent, 'collection_id')     # write it to csv_row  ### !Map
 
     my_data.Data.object_log_file = open(my_data.Data.object_log_filename, 'w')
@@ -347,7 +347,7 @@ parser = argparse.ArgumentParser( )
 parser.add_argument('--collection_path', '-cp', nargs=1,
   help="The path to the collection's exported MODS .xml files", required=False, default="/collection_xml")
 parser.add_argument('--collection_id', '-id', nargs=1,
-  help="The numeric Alma (MMS) id of the parent collection", required=False, default="81294713150004641")
+  help="The numeric Alma ID (NOT the MMS_ID) of the parent collection", required=False, default="81294713150004641")
 args = parser.parse_args( )
 
 # cd to the collection_path directory and go

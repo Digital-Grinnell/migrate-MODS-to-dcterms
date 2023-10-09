@@ -37,7 +37,9 @@
       "justMyCode": true,
       "args": [
         "--collection_path",
-        "./data/postcards"
+        "./data/postcards",
+        "--collection_id",
+        "81294722860004641"
       ]
     }
   ]
