@@ -49,7 +49,8 @@ def collection_to_google(collection, csv_file, log_file):
                     "sheetId": wks.id,
                 },
                 "data": csvContents,
-                "type": "PASTE_NORMAL"
+                "type": "PASTE_NORMAL",
+                "delimiter": ","
             }
         },
       ]
