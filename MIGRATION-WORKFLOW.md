@@ -111,7 +111,7 @@ So, we invoke the _Alma Digital Uploader_ via `Resources | Digital Uploader` men
 
 Next, I selected `Add Files` then navigated to the local directory containing our `postcards-expanded.csv` file and picked it.  Next I clicked on `Upload All` to send that CSV file off for later processing.  Then I clicked `OK` and was transported back to a _Digital Uploader_ page showing my ID with a status of `Upload Complete`.  
 
-Now we need to turn to our `aws S3` commandline tool.  
+Now we need to turn to our `aws S3` command line tool.  
 
 ## Engaging Amazon `aws`
 
@@ -197,11 +197,139 @@ Every time I open the `DigitalGrinnell Qualified DC` profile and click away from
 
 Consequently, I am changing the name of our generated ingest CSV file from `expanded.csv` to `values.csv` so that it matches the "default" that Alma insists on using, even when told to do otherwise!   **Alma-sense: Frustrating as hell!**  
 
+## Bulk Ingest Woes
 
+Before departing on a much-needed vacation, I tried a number of strategies to bulk ingest objects and had limited success, but NONE of my efforts ever produced a visible image linked to a new object in our sandbox.  I'm taking steps now to clean ALL of the files out of our S3 bucket so that I can try a new "standard" one-at-a-time ingest with an image file uploaded alongside the `values.csv` file (not via the S3 command interface). 
 
+### Exporting Collection Objects
 
+I recently made sure that all of the objects in our test target, the `Historic Iowa Postcards` collection, have proper MODS title elements so it's time now to re-export all of those MODS records for testing.  Doing that now using the process outlined in [Exporting from Islandora](#exporting-from-islandora) above.  Done.
 
+### Purging our AWS S3 Storage
 
+I did this...  
+
+```zsh
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 rm s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --exclude "*" --include "*.jpg"
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/2njo0fqogj2q7gti4kfepi/grinnell_13326_OBJ.jpg
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/2njo0fqogj2q7gti4kfepi/grinnell_13325_OBJ.jpg
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/2njo0fqogj2q7gti4kfepi/grinnell_13328_OBJ.jpg
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/2njo0fqogj2q7gti4kfepi/grinnell_13331_OBJ.jpg
+...
+```
+
+And this...  
+
+```zsh
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+2023-07-13 16:17:27    0 Bytes 01GCL_INST/upload/5415182260004641/722cyb6kfcq5xs8z447qr6/.lock
+2023-10-09 11:53:42   56.1 KiB 01GCL_INST/upload/dided3gjriu74abw1a27qh/grinnell_103_OBJ.pdf
+
+Total Objects: 2
+   Total Size: 56.1 KiB
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 rm s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --exclude "*" --include "*.pdf"
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/dided3gjriu74abw1a27qh/grinnell_103_OBJ.pdf
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 rm s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --exclude "*" --include "*.lock"
+delete: s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5415182260004641/722cyb6kfcq5xs8z447qr6/.lock
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+
+Total Objects: 0
+   Total Size: 0 Bytes
+```
+
+So, we now have a clean slate.  
+
+### Moving Files from `libarchive` to This Repo
+
+I connected my VPN and subsequently opened a remote session on `MAD24W812UJ1G9`, the presumably repossessed iMac in my office, it's the only machine I have that can connect _Microsoft_Azure_Storage_Explorer_ to the `libarchivesmb` share (because a static IP is required).  From there I copied the following files to the `/MIGRATION/postcards` directory on my `OneDrive`:
+
+```
+grinnell_13314_OBJ.jpg
+grinnell_13313_OBJ.jpg
+grinnell_13312_OBJ.jpg
+grinnell_13311_OBJ.jpg
+grinnell_13310_OBJ.jpg
+grinnell_13315_OBJ.jpg
+grinnell_13316_OBJ.jpg
+grinnell_13317_OBJ.jpg
+grinnell_13318_OBJ.jpg
+grinnell_13319_OBJ.jpg
+grinnell_13310_MODS.xml
+grinnell_13311_MODS.xml
+grinnell_13312_MODS.xml
+grinnell_13313_MODS.xml
+grinnell_13314_MODS.xml
+grinnell_13315_MODS.xml
+grinnell_13316_MODS.xml
+grinnell_13317_MODS.xml
+grinnell_13318_MODS.xml
+grinnell_13319_MODS.xml
+```
+
+Next, I copied opened `OneDrive` on my MacBook, made sure all 20 files were downloaded, and copied them all to this repo's `data/postcards` directory.  I then created a new `OBJ` sub-directory and moved the local copy of all `.jpg` files there.
+
+### Running the Scripts
+
+As prescribed earlier, I ran the `main.py`, `to-google-sheet.py` and `expand-csv.py` scripts found in this repo against the files that were just saved in `data/postcards`.  The commands looked something like this:  
+
+```zsh
+python3 main.py --collection_path ./data/postcards
+python3 to-google-sheet.py --collection_path ./data/postcards
+python3 expand-csv.py --collection_path ./data/postcards
+```
+
+This produced, among others, the `values.csv` file needed for ingest.  
+
+### Preparing Alma for Upload
+
+This attempt will NOT engage Amazon S3 storage via the _S3_ command line, it will instead attache the `*.jpg` files to the `values.csv` in a package using the Alma `Digital Uploader`.   Like so...  
+
+1) Opened the Alma sandbox.
+2) Clicked `Resources` and `Digital Uploader`
+3) Selected `Insert into: Digital Grinnell (DigitalGrinnell Qualified DC profile)`.
+4) Clicked `Add New Ingest` and named it `Oct-20`.  The ID returned was `wnf0a4w7dphv190q883hbm`.
+5) Clicked `Add Files` and picked the `values.csv` file plus all 10 of the `.jpg` files held in the `OBJ` subdirectory. 
+6) Once all were visible in the window and `Pending Upload` I clicked `Upload All`. 
+7) When all uploads were complete I clicked `OK`.
+8) Next I checked for the uploaded files using the _AWS S3_ command line, like so:  
+
+```zsh
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+2023-10-20 23:44:37    0 Bytes 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/.lock
+2023-10-20 23:44:52    3.0 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13310_OBJ.jpg
+2023-10-20 23:45:04    6.6 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13310_OBJ.jpg.clientThumb
+2023-10-20 23:44:49  605.7 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13311_OBJ.jpg
+2023-10-20 23:44:52    7.4 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13311_OBJ.jpg.clientThumb
+2023-10-20 23:45:23    1.0 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13312_OBJ.jpg
+2023-10-20 23:45:27    7.4 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13312_OBJ.jpg.clientThumb
+2023-10-20 23:45:04    4.4 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13313_OBJ.jpg
+2023-10-20 23:45:23    7.0 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13313_OBJ.jpg.clientThumb
+2023-10-20 23:45:27    5.6 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13314_OBJ.jpg
+2023-10-20 23:45:50    7.0 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13314_OBJ.jpg.clientThumb
+2023-10-20 23:44:46  586.7 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13315_OBJ.jpg
+2023-10-20 23:44:49    6.9 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13315_OBJ.jpg.clientThumb
+2023-10-20 23:44:41    1.1 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13317_OBJ.jpg
+2023-10-20 23:44:46    6.9 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13317_OBJ.jpg.clientThumb
+2023-10-20 23:44:38  525.2 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13318_OBJ.jpg
+2023-10-20 23:44:41    6.3 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13318_OBJ.jpg.clientThumb
+2023-10-20 23:45:50    4.9 MiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13319_OBJ.jpg
+2023-10-20 23:46:08    6.7 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/grinnell_13319_OBJ.jpg.clientThumb
+2023-10-20 23:44:38   15.1 KiB 01GCL_INST/upload/5776525300004641/wnf0a4w7dphv190q883hbm/values.csv
+
+Total Objects: 20
+   Total Size: 21.8 MiB
+```
+
+9) Back in Alma, I selected the `wnf0a4w7dphv190q883hbm` job named `Oct-20`, then clicked `Submit Selected` and finally `Run MD Import`. 
+10) Then `Resources` and `Monitor and View Imports`.  The job status was `In Process` for some time.
+
+_Almost midnight, time to try and get some sleep... _
 
 
 
