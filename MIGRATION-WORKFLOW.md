@@ -466,4 +466,221 @@ python3 to-google-sheet.py --collection_path ./data/social-justice
 python3 expand-csv.py --collection_path ./data/social-justice
 ```
 
+All of this, after a little wrangling, produced what looks like a viable `values.csv`.  Let's try to ingest all of this...  
+
+So, we invoke the _Alma Digital Uploader_ via `Resources | Digital Uploader` menu selections in Alma.  Then `Add New Ingest` from the menu tab in the upper-right corner, and entered the `Ingest Details | Name` as `social-justice-Oct-23`.  In this case that selection generated an all-important `ID` value of **1wfpbky9juyzriocfgsv0i**.  That ID will be needed very soon, so I made a copy of it.
+
+Next, I selected `Add Files` then navigated to the local directory containing our `./data/social-justice/values.csv` file and picked it.  Next I clicked on `Upload All` to send that CSV file off for later processing.  Then I clicked `OK` and was transported back to a _Digital Uploader_ page showing my ID with a status of `Upload Complete`.  
+
+Now we need to turn to our `aws S3` command line tool.  
+
+## Engaging Amazon `aws`
+
+Following guidance provided in `AWS-S3-Storage-Info.md`...  
+
+To list the contents of our `upload` directory...  
+```zsh
+aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+```
+
+Like so...   
+
+```zsh
+(.venv) ╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●› 
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+2023-10-23 11:27:47    0 Bytes 01GCL_INST/upload/5776525300004641/1wfpbky9juyzriocfgsv0i/.lock
+2023-10-23 11:27:47   17.5 KiB 01GCL_INST/upload/5776525300004641/1wfpbky9juyzriocfgsv0i/values.csv
+
+Total Objects: 2
+   Total Size: 17.5 KiB
+```
+
+Notice in the output above that our `values.csv` file appears and our all-important ID from above, **1wfpbky9juyzriocfgsv0i**, is part of the file's path.  
+
+The `file_name_1` field of the latest `values.csv` file contains the names of several `.jpg` image files, and a couple `.pdf` files, to be associated with imported objects.  Next, try transferring those named files from local storage to our _Amazon S3_ storage as described in `AWS-S3-Storage-Info.md`.  Like so...  
+
+```zsh
+(.venv) ╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●› 
+╰─$ aws s3 cp ./data/social-justice/OBJ/ s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/ --recursive   
+upload: data/social-justice/OBJ/grinnell_10361_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10361_OBJ.pdf.clientThumb
+upload: data/social-justice/OBJ/grinnell_10362_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10362_OBJ.pdf.clientThumb
+upload: data/social-justice/OBJ/grinnell_102_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_102_OBJ.pdf.clientThumb
+upload: data/social-justice/OBJ/grinnell_10366_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10366_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10367_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10367_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10365_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10365_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_102_OBJ.pdf to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_102_OBJ.pdf
+upload: data/social-justice/OBJ/grinnell_10368_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10368_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10369_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10369_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10361_OBJ.pdf to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10361_OBJ.pdf
+upload: data/social-justice/OBJ/grinnell_10370_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10370_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10371_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10371_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10372_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10372_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10373.OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10373.OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10367_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10367_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10366_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10366_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10374_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10374_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10369_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10369_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10368_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10368_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10365_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10365_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10370_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10370_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_103_OBJ.pdf to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_103_OBJ.pdf
+upload: data/social-justice/OBJ/grinnell_10375_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10375_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_103_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_103_OBJ.pdf.clientThumb
+upload: data/social-justice/OBJ/grinnell_10371_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10371_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_184_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_184_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10373_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10373_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10372_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10372_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_185_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_185_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_186_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_186_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10374_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10374_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_187_OBJ.jpg.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_187_OBJ.jpg.clientThumb
+upload: data/social-justice/OBJ/grinnell_10362_OBJ.pdf to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10362_OBJ.pdf
+upload: data/social-justice/OBJ/social-justice.sparql to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/social-justice.sparql
+upload: data/social-justice/OBJ/grinnell_184_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_184_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_10375_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10375_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_185_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_185_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_187_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_187_OBJ.jpg
+upload: data/social-justice/OBJ/grinnell_186_OBJ.jpg to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_186_OBJ.jpg
+```
+
+Listing the contents of our `upload` directory now shows...  
+
+```zsh
+(.venv) ╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●› 
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+2023-10-23 11:30:37   32.2 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_102_OBJ.pdf
+2023-10-23 11:30:37    8.0 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_102_OBJ.pdf.clientThumb
+2023-10-23 11:30:37  191.4 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10361_OBJ.pdf
+2023-10-23 11:30:37    2.9 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10361_OBJ.pdf.clientThumb
+2023-10-23 11:30:37    5.5 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10362_OBJ.pdf
+2023-10-23 11:30:37    8.6 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10362_OBJ.pdf.clientThumb
+2023-10-23 11:30:37    2.8 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10365_OBJ.jpg
+2023-10-23 11:30:37   39.0 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10365_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    2.2 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10366_OBJ.jpg
+2023-10-23 11:30:37   33.6 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10366_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    1.5 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10367_OBJ.jpg
+2023-10-23 11:30:37   31.7 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10367_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    2.2 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10368_OBJ.jpg
+2023-10-23 11:30:37   38.0 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10368_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    1.9 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10369_OBJ.jpg
+2023-10-23 11:30:37   32.9 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10369_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    2.3 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10370_OBJ.jpg
+2023-10-23 11:30:37   34.1 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10370_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    2.3 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10371_OBJ.jpg
+2023-10-23 11:30:37   33.4 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10371_OBJ.jpg.clientThumb
+2023-10-23 11:30:37    2.5 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10372_OBJ.jpg
+2023-10-23 11:30:38   34.0 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10372_OBJ.jpg.clientThumb
+2023-10-23 11:30:38   31.8 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10373.OBJ.jpg.clientThumb
+2023-10-23 11:30:38    2.2 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10373_OBJ.jpg
+2023-10-23 11:30:39    2.0 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10374_OBJ.jpg
+2023-10-23 11:30:39   33.6 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10374_OBJ.jpg.clientThumb
+2023-10-23 11:30:39    1.9 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10375_OBJ.jpg
+2023-10-23 11:30:39   38.2 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_10375_OBJ.jpg.clientThumb
+2023-10-23 11:30:39   56.1 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_103_OBJ.pdf
+2023-10-23 11:30:39    9.9 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_103_OBJ.pdf.clientThumb
+2023-10-23 11:30:39    1.2 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_184_OBJ.jpg
+2023-10-23 11:30:39   12.1 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_184_OBJ.jpg.clientThumb
+2023-10-23 11:30:39    1.9 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_185_OBJ.jpg
+2023-10-23 11:30:39   31.1 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_185_OBJ.jpg.clientThumb
+2023-10-23 11:30:39   18.2 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_186_OBJ.jpg
+2023-10-23 11:30:39   24.0 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_186_OBJ.jpg.clientThumb
+2023-10-23 11:30:40    6.8 MiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_187_OBJ.jpg
+2023-10-23 11:30:40    8.7 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_187_OBJ.jpg.clientThumb
+2023-10-23 11:30:40  134 Bytes 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/social-justice.sparql
+2023-10-23 11:27:47    0 Bytes 01GCL_INST/upload/5776525300004641/1wfpbky9juyzriocfgsv0i/.lock
+2023-10-23 11:27:47   17.5 KiB 01GCL_INST/upload/5776525300004641/1wfpbky9juyzriocfgsv0i/values.csv
+
+Total Objects: 41
+   Total Size: 58.1 MiB
+```
+
+Looking good!  Just as we hoped it would be.  
+
+## Returning to the Digital Uploader
+
+With a handful of the OBJ files and `.clientThumb` files now residing in our S3 `upload` path, it's time to return to the Alma sandbox and continue with process.  In the _Digital Uploader_ screen I select my ingest, the one with an ID of `1wfpbky9juyzriocfgsv0i` and then click `Submit Selected`, then once enabled, `Run MD Import`.  
+
+## Outcome
+
+I got the dreaded status of `Manual Handling Required`.  8^(  The records returned state:  
+
+| Error Message                         | Number of Records |
+|---------------------------------------|-------------------|
+| Field dcterms:dateAccepted is invalid | 15                |
+| Field dcterms:temporal is invalid     | 18                |
+
+Returing to the `Manual Handling Required` option I choose to `Reject File`, and investigate the nature of these validation errors.  Rejecting the file appears to have removed ONLY the `values.csv` file from S3 storage, so for now I've added the missing columns to the `DigitalGrinnell Qualified DC` profile so that I can try again.  Unfortunately, that will mean a new ingest job and ID.  This system sucks!  
+
+The new ingest is `social-justice-Oct-23-fix` with a new ID of `s54yeugkjpq5j28f58z4ui`.   
+
+Making sure the site ID of `5776525300004641` is accounted for...   
+
+```zsh
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 cp ./data/social-justice/OBJ/ s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/ --recursive
+upload: data/social-justice/OBJ/grinnell_10361_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10361_OBJ.pdf.clientThumb
+upload: data/social-justice/OBJ/grinnell_102_OBJ.pdf.clientThumb to s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_102_OBJ.pdf.clientThumb
+...
+```
+
+And now...  
+
+```zsh
+╭─mcfatem@MAC02FK0XXQ05Q ~/GitHub/migrate-MODS-to-dcterms ‹main●›
+╰─$ aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/ --recursive --human-readable --summarize
+2023-10-23 11:30:37   32.2 KiB 01GCL_INST/upload/1wfpbky9juyzriocfgsv0i/grinnell_102_OBJ.pdf
+... Files in the above directory are invalid, the site ID was not included!
+2023-10-23 12:35:48    0 Bytes 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/.lock
+2023-10-23 12:41:18   32.2 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_102_OBJ.pdf
+2023-10-23 12:41:18    8.0 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_102_OBJ.pdf.clientThumb
+2023-10-23 12:41:18  191.4 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10361_OBJ.pdf
+2023-10-23 12:41:18    2.9 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10361_OBJ.pdf.clientThumb
+2023-10-23 12:41:18    5.5 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10362_OBJ.pdf
+2023-10-23 12:41:18    8.6 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10362_OBJ.pdf.clientThumb
+2023-10-23 12:41:18    2.8 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10365_OBJ.jpg
+2023-10-23 12:41:18   39.0 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10365_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    2.2 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10366_OBJ.jpg
+2023-10-23 12:41:18   33.6 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10366_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    1.5 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10367_OBJ.jpg
+2023-10-23 12:41:18   31.7 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10367_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    2.2 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10368_OBJ.jpg
+2023-10-23 12:41:18   38.0 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10368_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    1.9 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10369_OBJ.jpg
+2023-10-23 12:41:18   32.9 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10369_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    2.3 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10370_OBJ.jpg
+2023-10-23 12:41:18   34.1 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10370_OBJ.jpg.clientThumb
+2023-10-23 12:41:18    2.3 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10371_OBJ.jpg
+2023-10-23 12:41:19   33.4 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10371_OBJ.jpg.clientThumb
+2023-10-23 12:41:19    2.5 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10372_OBJ.jpg
+2023-10-23 12:41:19   34.0 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10372_OBJ.jpg.clientThumb
+2023-10-23 12:41:19   31.8 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10373.OBJ.jpg.clientThumb
+2023-10-23 12:41:19    2.2 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10373_OBJ.jpg
+2023-10-23 12:41:20    2.0 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10374_OBJ.jpg
+2023-10-23 12:41:20   33.6 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10374_OBJ.jpg.clientThumb
+2023-10-23 12:41:20    1.9 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10375_OBJ.jpg
+2023-10-23 12:41:20   38.2 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_10375_OBJ.jpg.clientThumb
+2023-10-23 12:41:20   56.1 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_103_OBJ.pdf
+2023-10-23 12:41:20    9.9 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_103_OBJ.pdf.clientThumb
+2023-10-23 12:41:20    1.2 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_184_OBJ.jpg
+2023-10-23 12:41:20   12.1 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_184_OBJ.jpg.clientThumb
+2023-10-23 12:41:20    1.9 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_185_OBJ.jpg
+2023-10-23 12:41:20   31.1 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_185_OBJ.jpg.clientThumb
+2023-10-23 12:41:20   18.2 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_186_OBJ.jpg
+2023-10-23 12:41:21   24.0 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_186_OBJ.jpg.clientThumb
+2023-10-23 12:41:21    6.8 MiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_187_OBJ.jpg
+2023-10-23 12:41:21    8.7 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/grinnell_187_OBJ.jpg.clientThumb
+2023-10-23 12:41:21  134 Bytes 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/social-justice.sparql
+2023-10-23 12:35:48   17.5 KiB 01GCL_INST/upload/5776525300004641/s54yeugkjpq5j28f58z4ui/values.csv
+
+Total Objects: 80
+   Total Size: 116.2 MiB
+```
+
+So, I uploaded files, OBJs and properly renamed TNs, to the "new" subdirectory and IT JUST WORKED.  19 new objects, no apparent errors.  One thing to note, the old PIDs of the objects appear twice in the metadata as `dc:identifier`.  It appears that this is due to that value appearing as both a `dc:identifier` field AND in the `originating_system_id` field in the `values.csv` file.  **I'm taking steps now to suppress the translation of those PIDs into the `dc:identifier` column of the CSV so that duplication no longer takes place.**  
+
+
+
+
+
+
 

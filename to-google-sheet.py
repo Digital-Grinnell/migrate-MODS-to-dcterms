@@ -11,10 +11,24 @@
 # https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU
 #
 # import community packages
-import gspread, time, os, argparse
+import gspread, time, os, argparse, pandas
 
 # import my packages
 import my_data, my_colorama, constant
+
+# apply_special_rules( )
+def apply_special_rules(collection, csv_filename, log_file):
+  df = pandas.read_csv(csv_filename)
+
+  for index, row in df.iterrows( ):
+
+    # Rule: Remove values from `dc:identifier` that exactly match `originating_system_id`
+    if row['originating_system_id'] in row['dc:identifier']:
+      new_id = row['dc:identifier'].replace(row['originating_system_id'], "")
+      df.at[index, "dc:identifier"] = new_id
+
+  df.to_csv(csv_filename)    
+
 
 # This function does nearly everything...
 def collection_to_google(collection, csv_file, log_file):
@@ -66,9 +80,9 @@ def collection_to_google(collection, csv_file, log_file):
   print('Rows: ', wks.row_count)
   print('Cols: ', wks.col_count)
 
-  print(wks.acell('A9').value)
-  print(wks.cell(3, 4).value)
-  print(wks.get('A7:E9'))
+  # print(wks.acell('A9').value)
+  # print(wks.cell(3, 4).value)
+  # print(wks.get('A7:E9'))
 
   # close the log_file and the csv
   log_file.close( )
@@ -103,12 +117,35 @@ if constant.DEBUG:
 csv_filename = 'mods.csv'
 log_filename = collection + '-google.log'
 
-# open files for this collection and GO!
+# open the collection log file
 try:
-  with open(csv_filename, 'r') as csv_file, open(log_filename, 'w') as my_data.Data.collection_log_file:
+  with open(log_filename, 'w') as my_data.Data.collection_log_file:
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
-    my_data.Data.collection_log_file.write("%s \n\n" % current_time)
-    collection_to_google(collection, csv_file, my_data.Data.collection_log_file)
+    my_data.Data.collection_log_file.write("Collection: %s    Time: %s \n\n" % (collection, current_time))
+    
+    # apply special rules!
+    try:
+      current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
+      my_data.Data.collection_log_file.write("Calling apply_special_rules at %s \n\n" % current_time)
+      apply_special_rules(collection, csv_filename, my_data.Data.collection_log_file)
+    except IOError as e:
+      print('Operation failed: %s' % e.strerror)
+
+    # open files for this collection and GO!
+    try:
+      with open(csv_filename, 'r') as csv_file:
+        current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
+        my_data.Data.collection_log_file.write("Calling collection_to_google at %s \n\n" % current_time)
+        collection_to_google(collection, csv_file, my_data.Data.collection_log_file)
+    except IOError as e:
+      print('Operation failed: %s' % e.strerror)
+
+except IOError as e:
+  print('Operation failed: %s' % e.strerror)
+
+
+
+
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
 
