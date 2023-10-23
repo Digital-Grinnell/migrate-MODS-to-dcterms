@@ -463,7 +463,7 @@ def originInfo_action(info):
       else:
         skip(info['publisher'])
     if 'dateOther' in info:
-      ok = single('dcterms:date_accepted', info['dateOther'])    ### !Map
+      ok = single('dcterms:dateAccepted', info['dateOther'])    ### !Map
       if ok:
         info['dateOther'] = ok
         c = c - 1

@@ -114,9 +114,11 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     obj_path = "./OBJ/" + xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
     found = False
     for obj_file in glob.glob(obj_path):
-      found = True
-      my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
-      mods.process_simple(obj_file, 'file_name_1')     # write it to csv_row    ### !Map
+      if ".clientThumb" not in obj_file: 
+        filename = os.path.basename(obj_file)
+        found = True
+        my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
+        mods.process_simple(filename, 'file_name_1')     # write it to csv_row    ### !Map
     if not found:
       my_data.Data.object_log_file.write("NO %s OBJ file found!\n" % obj_path)
       mods.process_simple(constant.NO_FILE_ERROR, 'file_name_1')     # alert the CSV file    ### !Map
@@ -183,12 +185,17 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
         ok = False
         g = doc['mods']['genre']
         if is_mapped('genre'):
-          DCMI = mods.check_DCMITypes(g)
+          if type(doc['mods']['genre']) is dict:
+            term = g['#text']
+            DCMI = mods.check_DCMITypes(term)
+          else:
+            term = g
+            DCMI = mods.check_DCMITypes(g['#text'])
           if DCMI:
             (term, score) = DCMI
             ok = mods.process_multi(term, 'dcterms:type.dcterms:DCMIType')    ### !Map
           else:
-            ok = mods.process_multi("genre: " + g, 'dc:description')    ### !Map
+            ok = mods.process_multi("genre: " + term, 'dc:description')    ### !Map
         if ok:
           doc['mods']['genre'] = ok
 

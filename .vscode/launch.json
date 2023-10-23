@@ -37,9 +37,9 @@
       "justMyCode": true,
       "args": [
         "--collection_path",
-        "/Users/mcfatem/GitHub/migrate-MODS-to-dcterms/data/postcards",
+        "/Users/mcfatem/GitHub/migrate-MODS-to-dcterms/data/social-justice",
         "--collection_id",
-        "81294722860004641"
+        "81294733160004641"
       ]
     }
   ]
