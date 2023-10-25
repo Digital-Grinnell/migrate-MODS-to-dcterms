@@ -1,5 +1,15 @@
-# Run this script from a working directory that contains a collection's exported MODS.xml files.
+# Run this script and specify a '--collection_path' argument pointing to a directory that contains 
+# a collection's '<object>_MODS.xml' files, one for each object in the collection.  The script will
+# examine each '<object>_MODS.xml' within, generating a '.log' and '.remainder' pair of files for each. 
+# The principal function of the script is to create a new 'mods.csv' file which forms the basis for creation
+# of a 'values.csv' (see the 'to-google-sheet.py' and 'expand-csv.py' scripts) file for import into Alma-D.  
 # 
+# If the '--collection_path' directory has an `OBJ` subdirectory the script will look for 'OBJ' and 'TN' 
+# content files (also exported from Digital.Grinnell).  Each '<object>_TN.*' file will be renamed per the
+# Alma-D convention to match the name of the corresponding `OBJ` file, but with a '.clientThumb' extension 
+# added.  The script will also generate an 'aws s3...' command suitable for copying the 'OBJ' subdirectory
+# contents to our appropriate Amazon S3 ingest storage.   
+#
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
 
@@ -139,9 +149,6 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       if constant.DEBUG:
         import json
         print(json.dumps(doc['mods'], sort_keys=True, indent=2))
-
-      
-
 
       # Processing for specific MODS fields begins here... 
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -304,14 +311,13 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
             doc['mods']['typeOfResource'] = ok
           else:
             my_data.Data.object_log_file.write("No fuzzy match found in DCMITypes for '%s' \n" % t)
-
   
-      # # add a link to this object's .log file into log-file-link
+      # # add a link to this object's .log file into log-file-link   !! This breaks the import!  Don't do it.
       # col = mods.column('log-file-link')
       # my_data.Data.csv_row[col] = my_data.Data.object_log_filename
       
-      # increment and add to the google_sheet_source index 
-      # write the result and the Google Sheet URL to the "google_sheet_source" cell
+      # Increment and add to the google_sheet_source index 
+      # Write the result and the Google Sheet URL to the "google_sheet_source" cell
       col = mods.column('googlesheetsource')
       import_index += 1
       my_data.Data.csv_row[col] = str(import_index) + "  " + constant.GOOGLE_SHEET
@@ -335,6 +341,19 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       # print what's left of doc['mods'] to a temporary tmp file
       tmp = tempfile.TemporaryFile('w+')
       tmp.write(json.dumps(doc['mods'], sort_keys=True, indent=2))
+
+      ## That is the end of the MODS field processing, now focus on the object's OBJ and TN files, if any.
+      found = False
+      for obj_file in glob.glob(obj_path):
+        if "TN" in obj_file: 
+          found = True
+          filename = os.path.basename(obj_file)
+          tn_name = filename.replace('TN','OBJ') + ".clientThumb"
+          os.rename(filename, tn_name)
+          my_data.Data.object_log_file.write("Found TN file '%s' and renamed to '%s' \n" % (filename, tn_name))
+
+      if not found:
+        my_data.Data.object_log_file.write("NO %s TN file found!\n" % obj_path)
       
     # close the object_log_file
     my_data.Data.object_log_file.close()
