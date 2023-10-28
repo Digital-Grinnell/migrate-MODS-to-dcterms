@@ -233,7 +233,7 @@ try:
       my_data.Data.collection_log_file.write(msg + "\n")
 
       print( )
-      
+
       msg = "Use this 'aws ls...' list command to check the status of files in AWS storage for ingest: \n %s" % ls
       print(msg)
       my_data.Data.collection_log_file.write(msg + "\n")

@@ -155,7 +155,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
       # Assume we have NO mods:genre OR mods:typeOfResource
       has_genre = False    # assume we have no mods:genre element
-      ok = mods.process_simple("*** REPLACE ME! ***", 'dc:type', replace=True)          ### !Map
+      ok = mods.process_simple(constant.REPLACE_ME, 'dc:type', replace=True)          ### !Map
 
       # Processing for specific MODS fields begins here... 
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -48,5 +48,6 @@ TARGET_LEVEHSHTEIN_RATIO = 90
 GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit?usp=sharing'
 
 NO_FILE_ERROR = "*** REPLACE ME! No corresponding OBJ file found! ***"
+REPLACE_ME = "*** REPLACE ME! ***"
 
 TEMP_CSV = "temporary.csv"
