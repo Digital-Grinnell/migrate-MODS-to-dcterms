@@ -119,8 +119,8 @@ def skip(tag):
 #
 # This function will check the genre or typeOfResource input "value" and...
 #   - If "value" matches (fuzzy) a valid dcterms:DCMIType vocabulary element, that DCMIType term is returned.
-#   - If "value" does not match... the function returs False where
-#       "genre: <value>" is appended to dc:desciption (it becomes a "note")
+#   - If "value" does not match... the function returs False such that 
+#       "value" is mapped to "dc:type"
 #
 def check_DCMITypes(value):
   import constant, my_colorama
@@ -132,6 +132,29 @@ def check_DCMITypes(value):
   else:
     return DCMI
 
+# map_resource_type(value)
+# The /mods/genre or /mods/typeOfResource may need to map into the 'dc:type' field to
+# control Alma resource typing. 
+#  
+# https://www.loc.gov/standards/mods/mods-dcsimple.html indicates that both of these MODS terms should
+# map to dc:type, and https://www.dublincore.org/specifications/dublin-core/usageguide/qualifiers/ suggests 
+# that dcterms:type.dcterms:DCMIType can be used for terms that are compliant with DCMI 
+# vocabulary (see https://www.dublincore.org/specifications/dublin-core/dcmi-type-vocabulary/). 
+#
+# This function will check the genre or typeOfResource input "value" and...
+#   - If "value" matches (fuzzy) a valid dcterms:DCMIType vocabulary element, that DCMIType term is returned.
+#   - If "value" does not match... the function returs False such that 
+#       "value" is mapped to "dc:type"
+#
+def map_resource_type(value):
+  import constant, my_colorama
+  from fuzzywuzzy import fuzz, process
+  type = process.extractOne(value, constant.RESOURCETypes.keys(), score_cutoff=constant.TARGET_LEVEHSHTEIN_RATIO)
+  if not type or type == "None":
+    my_colorama.red("No Resource Type match found for '%s'" % value)
+    return False
+  else:
+    return type
 
 
 # multi(key,value)
@@ -163,13 +186,13 @@ def multi(key, value):
 
 # single(key,value)
 # Called when adding 'value' to a single-valued target column 'key'
-def single(key, value):
+def single(key, value, replace=False):
   import my_data, my_colorama, constant
   col = column(key)
   if type(value) is not str:
     value = value['#text']
   nc = len(my_data.Data.csv_row[col])
-  if nc > 0:
+  if nc > 0 and not replace:
     if constant.DEBUG:
       my_colorama.red("------ single() called but the target cell in column(%s) is already filled!" % key)
     my_data.Data.collection_log_file.write("------ single() called but the target cell in column(%s) is already filled!" % key)
@@ -238,9 +261,9 @@ def process_dict_list(thing, action):      # so far only used for 'language'
 
 # process one simple thing destined for a single-value field
 
-def process_simple(thing, heading):         # use for simple key:value things like 'abstract'
+def process_simple(thing, heading, replace=False):       # use for simple key:value things like 'abstract'
   try:
-    ok = single(heading, thing)
+    ok = single(heading, thing, replace)
     if ok:
       thing = ok
       return ok

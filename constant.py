@@ -16,10 +16,37 @@ CREATORS = ['creator','author','artist','composer']
 
 DCMITypes = ['Collection','Dataset','Event','Image','Interactive Resource','Moving Image','Physical Object','Service','Software','Sound','Still Image','Text']
 
+# The following RESOURCETypes dict must match Alma's `Configuration` | `Discovery` | 
+#   `Loading External Data Sources` | `Dublin Core type to Discovery Type mapping`
+#
+
+RESOURCETypes = {  
+ 'proceedings': 'conference_proceedings',
+ 'proceeding': 'conference_proceedings',
+ 'photograph': 'images',
+ 'poster': 'images',
+ 'report': 'technical_reports',
+ 'journal': 'journals',
+ 'map': 'maps',
+ 'manuscript': 'manuscripts',
+ 'book': 'books',
+ 'article': 'articles',
+ 'book chapter': 'book_chapters',
+ 'book review': 'reviews',
+ 'dataset': 'research_datasets',
+ 'dissertation': 'dissertations',
+ 'document': 'text_resources',
+ 'image': 'images',
+ 'website': 'websites',
+ 'video': 'videos',
+ 'government document': 'government_documents',
+ 'score': 'scores',   # This is the end of the pre-defined set of keys.  Everything below is a "custom" mapping.
+ 'postcard': 'images' }
+
 TARGET_LEVEHSHTEIN_RATIO = 90
 
 GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit?usp=sharing'
 
-NO_FILE_ERROR = "Attention: No corresponding OBJ file found!"
+NO_FILE_ERROR = "*** REPLACE ME! No corresponding OBJ file found! ***"
 
 TEMP_CSV = "temporary.csv"

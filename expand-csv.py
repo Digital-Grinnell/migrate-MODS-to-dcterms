@@ -1,6 +1,6 @@
 # This script will export a collection's worksheet/tab from our constant.GOOGLE_SHEET
-# to a "mods-with-edits.csv" file in the local working directory.  That CSV is then 
-# expanded to a new "values.csv" file ready for ingest into Alma-Digital.
+# to an "expanded" 'values.csv' file in the local working directory.  That CSV, with multi-valued
+# (using our | seperator convention) is then ready for ingest into Alma-Digital.
 # 
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
@@ -116,9 +116,9 @@ args = parser.parse_args( )
 
 # cd to the collection_path directory and go
 cwd = os.getcwd( )
-path = args.collection_path
+collection_path = args.collection_path
 try:
-  os.chdir(path[0])
+  os.chdir(collection_path[0])
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
   exit( )
@@ -221,8 +221,28 @@ try:
       expanded_csv.close( )      
       my_data.Data.collection_log_file.write("Done!\n")
 
+      # Finish by suggesting the `aws s3...` commands that should be used 
+      # as part of the Alma-D upload operation.
+      cp = "aws s3 cp %s/OBJ/ s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/REPLACE-WITH-PROCESS-ID/ --recursive" % collection_path[0]
+      ls = "aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/ --recursive"
+
+      print( )
+
+      msg = "Edit and use this 'aws s3...' copy command, in concert with the Alma Digital Uploader, to copy files to AWS storage for ingest: \n %s" % cp
+      print(msg)
+      my_data.Data.collection_log_file.write(msg + "\n")
+
+      print( )
+      
+      msg = "Use this 'aws ls...' list command to check the status of files in AWS storage for ingest: \n %s" % ls
+      print(msg)
+      my_data.Data.collection_log_file.write(msg + "\n")
+
+
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
 
 # cd back to the original working directory 
 os.chdir(cwd)
+
+

@@ -98,8 +98,11 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
   csv_writer = csv.writer(csv_file, quotechar='"', quoting=csv.QUOTE_MINIMAL)
   csv_writer.writerow(my_data.Data.csv_headings)
 
-  # loop on each .xml file in this collection directory; each .xml file represents one row in the csv
-  for xml_filename in glob.glob('*.xml'):
+  # Grab a glob of all the *.xml files in the collection directory; each .xml file will become one row in the csv
+  xml_files = glob.glob('*.xml')
+
+  # loop on each glob'd file...
+  for xml_filename in xml_files:
     my_data.Data.object_log_filename = xml_filename.replace('.xml', '.log')
     my_data.Data.csv_row = ['']*len(my_data.Data.csv_headings)   # initialize the global csv_row to an empty list
 
@@ -149,6 +152,10 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       if constant.DEBUG:
         import json
         print(json.dumps(doc['mods'], sort_keys=True, indent=2))
+
+      # Assume we have NO mods:genre OR mods:typeOfResource
+      has_genre = False    # assume we have no mods:genre element
+      ok = mods.process_simple("*** REPLACE ME! ***", 'dc:type', replace=True)          ### !Map
 
       # Processing for specific MODS fields begins here... 
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -201,10 +208,13 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
           if DCMI:
             (term, score) = DCMI
             ok = mods.process_multi(term, 'dcterms:type.dcterms:DCMIType')    ### !Map
-          else:
-            ok = mods.process_multi("genre: " + term, 'dc:description')    ### !Map
+          resource_type = mods.map_resource_type(term)
+          if resource_type:
+            ok = mods.process_simple(resource_type[0], 'dc:type', replace=True)           ### !Map
+
         if ok:
           doc['mods']['genre'] = ok
+          has_genre = True
 
 
       # identifier: process one or more top-level 'identifier' elements
@@ -311,6 +321,12 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
             doc['mods']['typeOfResource'] = ok
           else:
             my_data.Data.object_log_file.write("No fuzzy match found in DCMITypes for '%s' \n" % t)
+
+          if not has_genre:     # If we did not map mods:genre to dc:type, we must map this value to dc:type
+            resource_type = mods.map_resource_type(term)
+            if resource_type:
+              ok = mods.process_simple(resource_type[0], 'dc:type', replace=True)        ### !Map
+   
   
       # # add a link to this object's .log file into log-file-link   !! This breaks the import!  Don't do it.
       # col = mods.column('log-file-link')
@@ -342,24 +358,25 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       tmp = tempfile.TemporaryFile('w+')
       tmp.write(json.dumps(doc['mods'], sort_keys=True, indent=2))
 
-      ## That is the end of the MODS field processing, now focus on the object's OBJ and TN files, if any.
-      found = False
-      for obj_file in glob.glob(obj_path):
-        if "TN" in obj_file: 
-          found = True
-          filename = os.path.basename(obj_file)
-          tn_name = filename.replace('TN','OBJ') + ".clientThumb"
-          os.rename(filename, tn_name)
-          my_data.Data.object_log_file.write("Found TN file '%s' and renamed to '%s' \n" % (filename, tn_name))
+    ## That is the end of the MODS field processing, now focus on the object's OBJ and TN files, if any.
+    found = False
+    for obj_file in glob.glob("./OBJ/*"):
+      if "TN" in obj_file: 
+        found = True
+        tn_name = obj_file.replace('TN','OBJ') + ".clientThumb"
+        os.rename(obj_file, tn_name)
+        my_data.Data.object_log_file.write("\n\nFound TN file '%s' and renamed to '%s' \n" % (filename, tn_name))
 
-      if not found:
-        my_data.Data.object_log_file.write("NO %s TN file found!\n" % obj_path)
+    if not found:
+      my_data.Data.object_log_file.write("\n\nNO %s TN file found!\n" % obj_file)
       
     # close the object_log_file
     my_data.Data.object_log_file.close()
 
     # produce a .clean file from the object's tmp file
     mods.cleanup(tmp)
+
+  ##### End of: for xml_filename in xml_files:
 
   # close the CSV file
   csv_file.close( )
