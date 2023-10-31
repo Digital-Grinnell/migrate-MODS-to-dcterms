@@ -121,21 +121,62 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
     my_data.Data.object_log_file.write("Object PID: %s   %s \n\n" % (pid, current_time))
 
+    # Look for the object's corresponding *_RELS-EXT.rdf file.  
+    # If found, fetch any hasModel and isConstituentOf elements so we know if we need to do
+    # any compound/child object handling
+    rdf_filename = xml_filename.replace('.xml', '.rdf').replace('MODS', 'RELS-EXT')
+    found = False
+
+    # Open the RELS-EXT file and parse it looking for key information
+    with open(rdf_filename, 'r') as rdf_file:
+      my_data.Data.object_log_file.write("Found RELS-EXT file: %s \n" % rdf_filename)
+      found = True
+      rdf_string = clean(rdf_file.read())
+      doc = xmltodict.parse(rdf_string)
+
+      if 'fedora:isConstituentOf' in doc['rdf:RDF']['rdf:Description']:
+        compound_parent = doc['rdf:RDF']['rdf:Description']['fedora:isConstituentOf']['@rdf:resource']
+        compound_parent_parts = compound_parent.split("/")
+        compound_parent = compound_parent_parts[-1]
+      else:
+        compound_parent = False  
+
+      if 'fedora-model:hasModel' in doc['rdf:RDF']['rdf:Description']:
+        cModel = doc['rdf:RDF']['rdf:Description']['fedora-model:hasModel']['@rdf:resource']
+        cModel_parts = cModel.split(":")
+        cModel = cModel_parts[-1]
+      else: 
+        cModel = False  
+
+    if not found:
+      my_data.Data.object_log_file.write("NO %s RELS-EXT file found!\n" % rdf_file)
+
+    # If the object has a compound parent, write that PID to the group_id.  Otherwise, write 
+    # the object's PID as the group_id (it's a compound parent, or group of one).
+    if compound_parent:
+      mods.process_simple(compound_parent, 'group_id')        # write it to csv_row  ### !Map
+    else: 
+      mods.process_simple(pid, 'group_id')        # write it to csv_row  ### !Map
+
     # Look for the object's corresponding *_OBJ.<extension> file.  
     # If found, write the OBJ filename into the 'file_name_1' column
     obj_filename = xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
     obj_path = "./OBJ/" + xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
     found = False
+
     for obj_file in glob.glob(obj_path):
       if ".clientThumb" not in obj_file: 
         filename = os.path.basename(obj_file)
         found = True
         my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
         mods.process_simple(filename, 'file_name_1')     # write it to csv_row    ### !Map
-    if not found:
+    
+    # If no OBJ is found AND this is not a compound parent... warn the user via the .csv file
+    if not found and "compound" not in cModel:
       my_data.Data.object_log_file.write("NO %s OBJ file found!\n" % obj_path)
       mods.process_simple(constant.NO_FILE_ERROR, 'file_name_1')     # alert the CSV file    ### !Map
 
+    # OK, open the MODS .xml and begin processing the metadata
     with open(xml_filename, 'r') as xml_file:
       current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime())
       msg = "Processing file: %s" % xml_filename
@@ -309,6 +350,15 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
           if ok:
             doc['mods']['titleInfo'] = ok
 
+          # If this object is a compound child, move the dc:title to rep_label AND file_label_1, 
+          # and blank out the dc:title
+          if compound_parent:
+            tcol = mods.column('dc:title')
+            title = my_data.Data.csv_row[tcol]
+            my_data.Data.csv_row[tcol] = ""                ### !Map
+            mods.process_simple(title, 'rep_label')        ### !Map
+            mods.process_simple(title, 'file_label_1')     ### !Map
+
       # typeOfResource: process simple, single top-level element
       if 'typeOfResource' in doc['mods']:
         t = doc['mods']['typeOfResource']
@@ -368,7 +418,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
         my_data.Data.object_log_file.write("\n\nFound TN file '%s' and renamed to '%s' \n" % (filename, tn_name))
 
     if not found:
-      my_data.Data.object_log_file.write("\n\nNO %s TN file found!\n" % obj_file)
+      my_data.Data.object_log_file.write("\n\nNO TN file found for %s! \n" % pid)
       
     # close the object_log_file
     my_data.Data.object_log_file.close()
