@@ -1,22 +1,21 @@
 class Data:
 
-  ## special handling per collection - informs the script about special handling
-  ## situations on a collection-by-collection basis   NOT USED!
+  ## Special handling per collection - informs the script about special handling
+  ## situations on a collection-by-collection basis   NOT CURRENTLY USED!
 
   special_handling = {
     'postcards': [{ 'classification': 'dc:identifier' }]
   }
 
-  ## list of MODS types that are not yet mapped to Alma
+  ## List of MODS types that are not yet mapped to Alma
   not_mapped = [
     'classification',
     'extension'
   ]
 
-  ## ordered list of csv column headings for Alma-D   These MUST ALL BE IN OUR PROFILE otherwise
+  ## Ordered list of csv column headings for Alma-D   These MUST ALL BE IN OUR PROFILE otherwise
   ## we will be plagued with validation errors!
   csv_headings = [
-    'googlesheetsource',
     'group_id',
     'collection_id',
     'mms_id',
@@ -64,19 +63,25 @@ class Data:
     'file_name_1',
     'file_label_1',
     'file_name_2',
-    'file_label_2'
+    'file_label_2',
+    'googlesheetsource'
   ]
 
+  ## Object data populated during loops... may be necessary for object post-processing
+  title = None
+  description = None
 
-  ## global csv_row
+  ## Global csv_row
   csv_row = ['']*len(csv_headings)
 
-  ## global filenames and files
+  ## Global filenames, files and API connections
 
   collection_log_filename = ''
   collection_log_file = None
 
   object_log_filename = ''
   object_log_file = None
+
+  alma_api = None
 
 

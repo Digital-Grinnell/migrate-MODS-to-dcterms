@@ -9,12 +9,39 @@
 
 # import community packages
 import csv, time, os, argparse, gspread
+from almapipy import AlmaCnxn as AlmaAPIConn
 
 # import my packages
 import my_data, my_colorama, constant
 
-# This function analyzes the mods.csv, looking for columns that need expansion
+## createAlmaCollection( )
+## Create a new sub-collection
+# 
+# https://developers.exlibrisgroup.com/alma/apis/bibs/
 
+def createAlmaCollection(parent_collection_id, collection_name, collection_description):
+  # Build a new collection in json 
+  collection_json = {
+                      "parent_pid": { 
+                        "value": parent_collection_id
+                      },
+                      "name": collection_name,
+                      "description": collection_description,
+                      "sort_by": "desc",
+                      "order": 1
+                    }
+
+  try:
+    # collection_info = my_data.Data.alma_api.bibs.collections.get(collection_id)
+    # print(collection_info, sep=' ', end='\n', flush=False)
+    new_collection = my_data.Data.alma_api.bibs.collections.post(collection_json, record_format='dc')
+    print(new_collection, sep=' ', end='\n', flush=False)
+  except IOError as e:
+    print('Operation failed: %s' % e.strerror)
+    exit( )
+
+
+# This function analyzes the mods.csv, looking for columns that need expansion
 def analyze_csv(collection, csv_file, log_file):
   my_data.Data.collection_log_file.write("analyze_csv: Beginning analysis of collection '%s'\n" % collection)
 
@@ -114,7 +141,7 @@ parser.add_argument('--collection_path', '-cp', nargs=1,
   help="The local path of the collection to be processed", required=False, default="/collection_xml")
 args = parser.parse_args( )
 
-# cd to the collection_path directory and go
+# Move (cd) to the collection_path directory and go
 cwd = os.getcwd( )
 collection_path = args.collection_path
 try:
@@ -132,13 +159,22 @@ if constant.DEBUG:
 # csv_filename = 'mods.csv'
 log_filename = collection + '-expansion.log'
 
-# open files for this collection and GO!
+# Open the Alma API
+try: 
+  my_data.Data.alma_api = AlmaAPIConn(constant.ALMA_API_KEY, data_format='json')
+  if constant.DEBUG:
+    msg = "\nAlma API connection is now open for collection: %s" % collection
+    my_colorama.blue(msg)
+except IOError as e:
+  print('Operation failed: %s' % e.strerror)
+
+# Open files for this collection and GO!
 try:
   with open(log_filename, 'w') as my_data.Data.collection_log_file:
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
     my_data.Data.collection_log_file.write("%s \n\n" % current_time)
 
-    # open the GOOGLE_SHEET's collection worksheet and dump it into a temporary CSV file 
+    # Open the GOOGLE_SHEET's collection worksheet and dump it into a temporary CSV file 
     sa = gspread.service_account()
     sh = sa.open_by_url(constant.GOOGLE_SHEET)
 
@@ -147,19 +183,25 @@ try:
     except:
       my_data.Data.collection_log_file.write('WorksheetOperation failed, collection worksheet "%s" does not exist or cannot be opened.' % collection)
 
-    # dump the open GOOGLE_SHEET collection worksheet to a temporary CSV file and open that
+    # Dump the open GOOGLE_SHEET collection worksheet to a temporary CSV file and open that
     # file to be analyzed
     with open(constant.TEMP_CSV, 'w+') as f:
       writer = csv.writer(f)
       writer.writerows(wks.get_all_values( ))
     f.close( )
 
-    # reopen our temporary CSV and GO!
+    # Reopen our temporary CSV and GO!
     try:
       with open(constant.TEMP_CSV, 'r') as temp_file:
         my_data.Data.collection_log_file.write("Temporary CSV for collection '%s' has been reopened for reading \n" % collection)
 
-        # analyze the CSV contents 
+        #------------------------------------------------------------------
+        # Compound object post-processing... 
+        # Turn a compound parent into a new collection with children as items within
+        if "compound" in cModel:
+          createAlmaCollection(user_collection, my_data.Data.title, my_data.Data.description)    # just testing
+
+        # Analyze the CSV contents 
         counter = analyze_csv(collection, temp_file, my_data.Data.collection_log_file)
         temp_file.close( )
         my_data.Data.collection_log_file.write("%s is now closed.\n" % constant.TEMP_CSV)
@@ -169,15 +211,15 @@ try:
 
     headings = []
     
-    # open a new expanded CSV for writing
+    # Open a new expanded CSV for writing
     expanded_filename = 'values.csv'   ## Alma-sense insists on using this name!
     with open(expanded_filename, 'w') as expanded_csv:
       csv_writer = csv.writer(expanded_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-      # build a list of expanded columns, duplicating those with counter > 1
+      # Build a list of expanded columns, duplicating those with counter > 1
       for col in counter:
         k = counter[col]
-        headings.append(col)   # append one instance of EVERY column, empty or not!
+        headings.append(col)   # Append one instance of EVERY column, empty or not!
         while k > 1:
           headings.append(col)
           k = k - 1
@@ -188,7 +230,7 @@ try:
       new_num_columns = len(headings)
       my_data.Data.collection_log_file.write("%s headings written to the new CSV file.\n" % new_num_columns)
 
-      # convert the counter dict to hold first column positions for each csv heading
+      # Convert the counter dict to hold first column positions for each csv heading
       first_col = [0]
       for c, col in enumerate(counter):
         k = max(counter[col], 1)
@@ -196,7 +238,7 @@ try:
 
       # csv_writer.writerow(first_col)
 
-      # reopen the temporary CSV file for reading
+      # Reopen the temporary CSV file for reading
       with open(constant.TEMP_CSV, 'r') as csv_file:
         my_data.Data.collection_log_file.write("%s has been reopened.\n" % constant.TEMP_CSV)
         reader = csv.reader(csv_file)
@@ -227,22 +269,19 @@ try:
       ls = "aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/ --recursive"
 
       print( )
-
       msg = "Edit and use this 'aws s3...' copy command, in concert with the Alma Digital Uploader, to copy files to AWS storage for ingest: \n %s" % cp
       print(msg)
       my_data.Data.collection_log_file.write(msg + "\n")
 
       print( )
-
       msg = "Use this 'aws ls...' list command to check the status of files in AWS storage for ingest: \n %s" % ls
       print(msg)
       my_data.Data.collection_log_file.write(msg + "\n")
 
-
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
 
-# cd back to the original working directory 
+# Move (cd) back to the original working directory 
 os.chdir(cwd)
 
 

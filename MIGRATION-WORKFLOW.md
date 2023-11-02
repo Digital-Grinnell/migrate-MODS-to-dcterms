@@ -688,13 +688,7 @@ I'm taking steps now to automate those previously "manual" steps so that future 
 
 Identifying a compound and it's parent cannot be reliably done using just a `MODS.xml` record, doing this will most likely require a `RELS-EXT` record so I'm taking steps to modify the `export.sh` script and subsequently `main.py` to introduce the necessary data and logic.  
 
+# New Compound Behavior
 
-
-
-
-
-
-
-
-
+After meeting on the morning of October 31, 2023, we've decided to look at automated generation of new collections to represent compound objects, rather than using differnt "reps" of a bib record to represent the children.  In this scheme each compound parent should create a new collection using the parent title as the collection name, and all children of that compound then become individual objects within.  Before embarking on this change some cleanup of `main.py` was in order.  
 

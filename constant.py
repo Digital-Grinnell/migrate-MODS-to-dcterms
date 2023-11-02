@@ -47,7 +47,16 @@ TARGET_LEVEHSHTEIN_RATIO = 90
 
 GOOGLE_SHEET = 'https://docs.google.com/spreadsheets/d/1JzW8TGU8qJlBAlyoMyDS1mkLTGoaLrsCzVtwQo-4JlU/edit?usp=sharing'
 
+ALMA_API_KEY = 'l8xx7a591a1ba5224ef29fd78a99db986ea9'
+
 NO_FILE_ERROR = "*** REPLACE ME! No corresponding OBJ file found! ***"
 REPLACE_ME = "*** REPLACE ME! ***"
 
 TEMP_CSV = "temporary.csv"
+
+ALTERNATING_COLORS = { 'yellow': [ {'backgroundColor': {'red': 1, 'green': 0.984, 'blue': 0 }}, 
+                                   {'backgroundColor': {'red': 0.871, 'green': 0.863, 'blue': 0.337 }} ],
+                       'green':  [ {'backgroundColor': {'red': 0.137, 'green': 0.922, 'blue': 0.165 }}, 
+                                   {'backgroundColor': {'red': 0.443, 'green': 0.969, 'blue': 0.463 }} ] }
+                                     
+

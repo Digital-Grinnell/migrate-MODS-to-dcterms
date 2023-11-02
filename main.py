@@ -9,14 +9,14 @@
 # Alma-D convention to match the name of the corresponding `OBJ` file, but with a '.clientThumb' extension 
 # added.  The script will also generate an 'aws s3...' command suitable for copying the 'OBJ' subdirectory
 # contents to our appropriate Amazon S3 ingest storage.   
-#
+
 ## Google Docs API obtained using
 #  https://developers.google.com/docs/api/quickstart/python?authuser=3
 
 # See https://docs.python-guide.org/scenarios/xml/
 
 # import community packages
-import os, glob, xmltodict, mimetypes, argparse
+import os, glob, xmltodict, mimetypes, argparse, pandas
 
 # import my packages
 import my_data, my_colorama, mods, constant
@@ -25,6 +25,7 @@ import my_data, my_colorama, mods, constant
 mimetypes.init( )
 
 ## --- Functions ---------------------------------------------------------------------------------
+
 
 ## getPID( ) ---------------------------------------------------------------
 ## Turn an XML filename/path into a PID
@@ -90,7 +91,7 @@ def check_special(collection, field):
 # See https://docs.google.com/spreadsheets/d/1rw9osrvGSg9fIQnQzCCILn-66mDOMD2VttT-yYkQH4E/ for mapping details.
 # Lines below that reflect mapping are tagged with '### !Map'
 
-def process_collection(collection, collection_id, csv_file, collection_log_file):  # do everything related to a specified collection
+def process_collection(collection, collection_id, csv_file, collection_log_file):  # do everything for specified collection
   import csv, my_data, mods, json, time, tempfile
   
   import_index = 0;
@@ -108,14 +109,8 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
     pid = getPID(xml_filename)          # get the object PID
     mods.process_simple(pid, 'originating_system_id')       # write it to csv_row ### !Map
-    # mods.process_simple(constant.HREF + pid, 'link-to-DG')  # write active link to Digital.Grinnell 
 
-    # this code does not work...nearly impossible to open a local file from a Google Sheet
-    # log_file_link = './' + pid.replace(':','_') + '_MODS.log'
-    # mods.process_simple(log_file_link, 'SEQUENCE')        # write file: link to the object log file into 'SEQUENCE'
-
-    parent = collection_id[0]                        # save the parent collection id
-    mods.process_simple(parent, 'collection_id')     # write it to csv_row  ### !Map
+    user_collection = collection_id[0]                        # save the user specified ID of the parent collection
 
     my_data.Data.object_log_file = open(my_data.Data.object_log_filename, 'w')
     current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime( ))
@@ -135,11 +130,13 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       doc = xmltodict.parse(rdf_string)
 
       if 'fedora:isConstituentOf' in doc['rdf:RDF']['rdf:Description']:
-        compound_parent = doc['rdf:RDF']['rdf:Description']['fedora:isConstituentOf']['@rdf:resource']
-        compound_parent_parts = compound_parent.split("/")
-        compound_parent = compound_parent_parts[-1]
+        has_compound_parent = doc['rdf:RDF']['rdf:Description']['fedora:isConstituentOf']['@rdf:resource']
+        has_compound_parent_parts = has_compound_parent.split("/")
+        has_compound_parent = has_compound_parent_parts[-1]
+        mods.process_simple(has_compound_parent, 'collection_id')     # write it to csv_row  ### !Map
       else:
-        compound_parent = False  
+        has_compound_parent = False  
+        mods.process_simple(user_collection, 'collection_id')     # write it to csv_row  ### !Map
 
       if 'fedora-model:hasModel' in doc['rdf:RDF']['rdf:Description']:
         cModel = doc['rdf:RDF']['rdf:Description']['fedora-model:hasModel']['@rdf:resource']
@@ -151,32 +148,8 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     if not found:
       my_data.Data.object_log_file.write("NO %s RELS-EXT file found!\n" % rdf_file)
 
-    # If the object has a compound parent, write that PID to the group_id.  Otherwise, write 
-    # the object's PID as the group_id (it's a compound parent, or group of one).
-    if compound_parent:
-      mods.process_simple(compound_parent, 'group_id')        # write it to csv_row  ### !Map
-    else: 
-      mods.process_simple(pid, 'group_id')        # write it to csv_row  ### !Map
-
-    # Look for the object's corresponding *_OBJ.<extension> file.  
-    # If found, write the OBJ filename into the 'file_name_1' column
-    obj_filename = xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
-    obj_path = "./OBJ/" + xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
-    found = False
-
-    for obj_file in glob.glob(obj_path):
-      if ".clientThumb" not in obj_file: 
-        filename = os.path.basename(obj_file)
-        found = True
-        my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
-        mods.process_simple(filename, 'file_name_1')     # write it to csv_row    ### !Map
-    
-    # If no OBJ is found AND this is not a compound parent... warn the user via the .csv file
-    if not found and "compound" not in cModel:
-      my_data.Data.object_log_file.write("NO %s OBJ file found!\n" % obj_path)
-      mods.process_simple(constant.NO_FILE_ERROR, 'file_name_1')     # alert the CSV file    ### !Map
-
-    # OK, open the MODS .xml and begin processing the metadata
+    #------------------------------------------------------------------
+    # Open the MODS .xml and begin processing the metadata
     with open(xml_filename, 'r') as xml_file:
       current_time = time.strftime("%d-%b-%Y %H:%M", time.localtime())
       msg = "Processing file: %s" % xml_filename
@@ -201,12 +174,41 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
       # Processing for specific MODS fields begins here... 
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+      # 'title' and 'abstract' are buffered for later use so they MUST COME FIRST in this block of code!
+      # Initialize their buffers to False
+      my_data.Data.title = False
+      my_data.Data.description = False
+
+      # titleInfo: process all top-level 'titleInfo' elements.  May be a dict of elements, or a list of dicts
+      if 'titleInfo' in doc['mods']:
+        if is_mapped('titleInfo'):
+          if type(doc['mods']['titleInfo']) is list:
+            ok = mods.process_list_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
+          else:
+            ok = mods.process_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
+          if ok:
+            doc['mods']['titleInfo'] = ok
+            tcol = mods.column('dc:title')
+            my_data.Data.title = my_data.Data.csv_row[tcol]
+
+          # If this object is a compound child, move the dc:title to rep_label AND file_label_1, 
+          # and blank out the dc:title
+          if has_compound_parent:
+            tcol = mods.column('dc:title')
+            mods.process_simple(my_data.Data.csv_row[tcol], 'rep_label')        ### !Map
+            mods.process_simple(my_data.Data.csv_row[tcol], 'file_label_1')     ### !Map
+            mods.single('dc:title', '', replace=True)                           ### !Map
+
       # abstract: process simple, single top-level element
       if 'abstract' in doc['mods']:
         if is_mapped('abstract'):
           ok = mods.process_simple(doc['mods']['abstract'], 'dcterms:abstract')  ### !Map
           if ok:
             doc['mods']['abstract'] = ok
+            dcol = mods.column('dc:description')
+            my_data.Data.description = my_data.Data.csv_row[dcol]
+
+      ## Order of remaining MODS elements here is NOT significant
 
       # accessCondition: process simple, single top-level element
       if 'accessCondition' in doc['mods']:
@@ -256,7 +258,6 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
         if ok:
           doc['mods']['genre'] = ok
           has_genre = True
-
 
       # identifier: process one or more top-level 'identifier' elements
       if 'identifier' in doc['mods']:
@@ -340,25 +341,6 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
           if ok:
             doc['mods']['subject'] = ok
 
-      # titleInfo: process all top-level 'titleInfo' elements.  May be a dict of elements, or a list of dicts
-      if 'titleInfo' in doc['mods']:
-        if is_mapped('titleInfo'):
-          if type(doc['mods']['titleInfo']) is list:
-            ok = mods.process_list_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
-          else:
-            ok = mods.process_dict(doc['mods']['titleInfo'], mods.titleInfo_action)
-          if ok:
-            doc['mods']['titleInfo'] = ok
-
-          # If this object is a compound child, move the dc:title to rep_label AND file_label_1, 
-          # and blank out the dc:title
-          if compound_parent:
-            tcol = mods.column('dc:title')
-            title = my_data.Data.csv_row[tcol]
-            my_data.Data.csv_row[tcol] = ""                ### !Map
-            mods.process_simple(title, 'rep_label')        ### !Map
-            mods.process_simple(title, 'file_label_1')     ### !Map
-
       # typeOfResource: process simple, single top-level element
       if 'typeOfResource' in doc['mods']:
         t = doc['mods']['typeOfResource']
@@ -376,22 +358,44 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
             resource_type = mods.map_resource_type(term)
             if resource_type:
               ok = mods.process_simple(resource_type[0], 'dc:type', replace=True)        ### !Map
-   
   
       # # add a link to this object's .log file into log-file-link   !! This breaks the import!  Don't do it.
       # col = mods.column('log-file-link')
       # my_data.Data.csv_row[col] = my_data.Data.object_log_filename
       
-      # Increment and add to the google_sheet_source index 
-      # Write the result and the Google Sheet URL to the "google_sheet_source" cell
-      col = mods.column('googlesheetsource')
-      import_index += 1
-      my_data.Data.csv_row[col] = str(import_index) + "  " + constant.GOOGLE_SHEET
+      #-----------------------------------------------
+      # Compound children as reps logic follows.
+ 
+      # If the object has a compound parent, write that PID to the group_id.  Otherwise, if 
+      # the object is a compound parent write the object's PID as the group_id.
+      if has_compound_parent:
+        mods.process_simple(has_compound_parent, 'group_id')        # write it to csv_row  ### !Map
+      elif ('compound' in cModel): 
+        mods.process_simple(pid, 'group_id')        # write it to csv_row  ### !Map
 
-      # all done with processing... write out the csv_row[]
+      # Look for the object's corresponding *_OBJ.<extension> file.  
+      # If found, write the OBJ filename into the 'file_name_1' column
+      obj_filename = xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
+      obj_path = "./OBJ/" + xml_filename.replace('.xml', '.*').replace('MODS', 'OBJ')
+      found = False
+
+      # Fetch and write the content filename to the .csv
+      for obj_file in glob.glob(obj_path):
+        if ".clientThumb" not in obj_file: 
+          filename = os.path.basename(obj_file)
+          found = True
+          my_data.Data.object_log_file.write("Found OBJ file: %s   %s \n" % (obj_file, current_time))
+          mods.process_simple(filename, 'file_name_1')     # write it to csv_row    ### !Map
+    
+      # If no OBJ is found AND this is not a compound parent... warn the user via the .csv file
+      if not found and "compound" not in cModel:
+        my_data.Data.object_log_file.write("NO %s OBJ file found!\n" % obj_path)
+        mods.process_simple(constant.NO_FILE_ERROR, 'file_name_1')     # alert the CSV file    ### !Map
+
+      # All done with processing... write out the csv_row[]
       csv_writer.writerow(my_data.Data.csv_row)
 
-      # print what's left of 'doc'
+      # Print what's left of 'doc'
       msg = "Transform results are: "
       if constant.DEBUG:
         my_colorama.cyan('------ ' + msg)
@@ -404,7 +408,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 
       my_data.Data.object_log_file.write(json.dumps(doc, sort_keys=True, indent=2))
 
-      # print what's left of doc['mods'] to a temporary tmp file
+      # Print what's left of doc['mods'] to a temporary tmp file
       tmp = tempfile.TemporaryFile('w+')
       tmp.write(json.dumps(doc['mods'], sort_keys=True, indent=2))
 
@@ -420,16 +424,27 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
     if not found:
       my_data.Data.object_log_file.write("\n\nNO TN file found for %s! \n" % pid)
       
-    # close the object_log_file
+    # Close the object_log_file
     my_data.Data.object_log_file.close()
 
-    # produce a .clean file from the object's tmp file
+    # Produce a .clean file from the object's tmp file
     mods.cleanup(tmp)
 
   ##### End of: for xml_filename in xml_files:
 
-  # close the CSV file
+  # Close the CSV file, then sort it by group_id/collection_id. 
   csv_file.close( )
+  dataFrame = pandas.read_csv("mods.csv")
+  # Sort according to multiple columns
+  dataFrame.sort_values(["group_id","collection_id"], axis=0, ascending=True, inplace=True, na_position='first')
+  dataFrame.reset_index( )
+
+  # Index the sorted sheet and write Google Sheet index/link to googlesheetsource column
+  for index, row in dataFrame.iterrows( ):
+    dataFrame.at[index, 'googlesheetsource'] = str(index) + str("  " + constant.GOOGLE_SHEET)
+
+  # Save the modified dataframe to `mods.csv`
+  dataFrame.to_csv('mods.csv', index=False)
 
 
 
@@ -443,7 +458,7 @@ parser.add_argument('--collection_id', '-id', nargs=1,
   help="The numeric Alma ID (NOT the MMS_ID) of the parent collection", required=False, default="81294713150004641")
 args = parser.parse_args( )
 
-# cd to the collection_path directory and go
+# Move (cd) to the collection_path directory and go
 cwd = os.getcwd( )
 path = args.collection_path
 try:
@@ -459,11 +474,11 @@ if constant.DEBUG:
   msg = "-- Now working in collection directory: %s" % collection
   my_colorama.blue(msg)
 
-# declare new files to be written
+# Declare new files to be written
 csv_filename = 'mods.csv'
 my_data.Data.collection_log_filename = 'collection.log'
 
-# open files for this collection and GO!
+# Open files for this collection and GO!
 try:
   with open(csv_filename, 'w', newline='') as csv_file, open(my_data.Data.collection_log_filename, 'w') as my_data.Data.collection_log_file:
     process_collection(collection, collection_id, csv_file, my_data.Data.collection_log_file)
