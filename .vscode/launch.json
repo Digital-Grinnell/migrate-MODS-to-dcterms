@@ -10,11 +10,7 @@
       "request": "launch",
       "program": "expand-csv.py",
       "console": "integratedTerminal",
-      "justMyCode": true,
-      "args": [
-        "--collection_path",
-        "/Users/mcfatem/GitHub/migrate-MODS-to-dcterms/data/social-justice"
-      ]
+      "justMyCode": true
     },
     {
       "name": "Python: to-google-sheet",
@@ -22,11 +18,7 @@
       "request": "launch",
       "program": "to-google-sheet.py",
       "console": "integratedTerminal",
-      "justMyCode": true,
-      "args": [
-        "--collection_path",
-        "/Users/mcfatem/GitHub/migrate-MODS-to-dcterms/data/social-justice"
-      ]
+      "justMyCode": true
     },
     {
       "name": "Python: main",
@@ -36,8 +28,6 @@
       "console": "integratedTerminal",
       "justMyCode": true,
       "args": [
-        "--collection_path",
-        "/Users/mcfatem/GitHub/migrate-MODS-to-dcterms/data/social-justice",
         "--collection_id",
         "81294733160004641"
       ]

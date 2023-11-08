@@ -10,6 +10,8 @@ LINK = '/Volumes/LIBRARY/ALLSTAFF/DG-Metadata-Review-2020-r1/'
 # COLLECTIONS_PATH = '/Users/markmcfate/GitHub/Map-MODS-to-MASTER/my_data/xml/*'
 # COLLECTIONS_PATH = '/Volumes/March2020/exported-MODS/*'
 
+COLLECTIONS_PATH = '/Volumes/LIBRARY/mcfatem/Migration-to-Alma/phpp-ghm/'
+
 NEEDLES = ['Remaining elements are:', 'xmlns', 'xsi', '==>']
 
 CREATORS = ['creator','author','artist','composer']

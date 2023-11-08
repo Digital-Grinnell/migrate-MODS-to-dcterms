@@ -453,7 +453,7 @@ def process_collection(collection, collection_id, csv_file, collection_log_file)
 # Get the runtime args...
 parser = argparse.ArgumentParser( )
 parser.add_argument('--collection_path', '-cp', nargs=1,
-  help="The path to the collection's exported MODS .xml files", required=False, default="/Volumes/mcfatem/Migration-to-Alma/postcards")
+  help="The path to the collection's exported MODS .xml files", required=False, default=constant.COLLECTIONS_PATH)
 parser.add_argument('--collection_id', '-id', nargs=1,
   help="The numeric Alma ID (NOT the MMS_ID) of the parent collection", required=False, default="81294713150004641")
 args = parser.parse_args( )
