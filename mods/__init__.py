@@ -10,46 +10,48 @@ def clean_empty(d):
 
 
 def cleanup(tmp):
-  import constant, my_data, my_colorama, xmltodict, tempfile, json
-  rem = my_data.Data.object_log_filename.replace('.log', '.remainder')
+  return
 
-  try:
-    tmp.seek(0)
-    with tmp as input, tempfile.TemporaryFile('w+') as temp:
-      temp.write('{\n')
-      for line in input:
-        if len(line.strip()) == 0 or line == '{\n' or line == '}\n' or line == '}':
-          continue
-        keep = True
-        for needle in constant.NEEDLES:
-          if needle in line:
-            keep = False
-            break
-        if keep:
-          temp.write(line)
-      temp.write('}\n')
+  # import constant, my_data, my_colorama, tempfile, json
+  # rem = my_data.Data.object_log_path.replace('.log', '.remainder')
 
-      input.close()
+  # try:
+  #   tmp.seek(0)
+  #   with tmp as input, tempfile.TemporaryFile('w+') as temp:
+  #     temp.write('{\n')
+  #     for line in input:
+  #       if len(line.strip()) == 0 or line == '{\n' or line == '}\n' or line == '}':
+  #         continue
+  #       keep = True
+  #       for needle in constant.NEEDLES:
+  #         if needle in line:
+  #           keep = False
+  #           break
+  #       if keep:
+  #         temp.write(line)
+  #     temp.write('}\n')
 
-      # rewind the temporary file and remove all empty keys
-      temp.seek(0)
-      try:
-        dict_from_file = eval(temp.read())
-        empty_keys = [k for k,v in dict_from_file.items() if not v]
-        for k in empty_keys:
-          del dict_from_file[k]
+  #     input.close()
 
-        # write the data back into the directory as .remainder
-        with open(rem, 'w+') as file:
-          file.write(json.dumps(dict_from_file, sort_keys=True, indent=2))
+  #     # rewind the temporary file and remove all empty keys
+  #     temp.seek(0)
+  #     try:
+  #       dict_from_file = eval(temp.read( ))
+  #       empty_keys = [k for k,v in dict_from_file.items() if not v]
+  #       for k in empty_keys:
+  #         del dict_from_file[k]
 
-      except Exception as e:
-        my_colorama.red("-- Processing: %s" % my_data.Data.object_log_filename)
-        my_colorama.red("  Exception: %s" % e)
-        raise
+  #       # write the data back into the directory as .remainder
+  #       with open(rem, 'w+') as file:
+  #         file.write(json.dumps(dict_from_file, sort_keys=True, indent=2))
 
-  except Exception as e:
-    pass                         # don't kill the messenger (the .remainder file) here!
+  #     except Exception as e:
+  #       my_colorama.red("-- Processing: %s" % my_data.Data.object_log_path)
+  #       my_colorama.red("  Exception: %s" % e)
+  #       raise
+
+  # except Exception as e:
+  #   pass                         # don't kill the messenger (the .remainder file) here!
 
 
 def prt(tag):
@@ -123,11 +125,16 @@ def skip(tag):
 #       "value" is mapped to "dc:type"
 #
 def check_DCMITypes(value):
-  import constant, my_colorama
+  import constant, my_colorama, my_data
   from fuzzywuzzy import fuzz, process
   DCMI = process.extractOne(value, constant.DCMITypes, score_cutoff=constant.TARGET_LEVEHSHTEIN_RATIO)
   if not DCMI or DCMI == "None":
-    my_colorama.red("No DCMIType match found for '%s'" % value)
+    msg = "No DCMIType match found for '%s'" % value
+    my_colorama.red(msg)
+    my_data.Data.collection_log_file.write('  ' + msg + '\n')
+    my_data.Data.object_log_file.write('  ' + msg + '\n')
+
+
     return False
   else:
     return DCMI
@@ -147,11 +154,14 @@ def check_DCMITypes(value):
 #       "value" is mapped to "dc:type"
 #
 def map_resource_type(value):
-  import constant, my_colorama
+  import constant, my_colorama, my_data
   from fuzzywuzzy import fuzz, process
   type = process.extractOne(value, constant.RESOURCETypes.keys(), score_cutoff=constant.TARGET_LEVEHSHTEIN_RATIO)
   if not type or type == "None":
-    my_colorama.red("No Resource Type match found for '%s'" % value)
+    msg = "No Resource Type match found for '%s'" % value
+    my_colorama.red(msg)
+    my_data.Data.collection_log_file.write('  ' + msg + '\n')
+    my_data.Data.object_log_file.write('  ' + msg + '\n')
     return False
   else:
     return type
@@ -189,8 +199,17 @@ def multi(key, value):
 def single(key, value, replace=False):
   import my_data, my_colorama, constant
   col = column(key)
+
+  # if value is NULL or None, write to the log file but DO NOT ATTEMPT TO SAVE the field
+  if value is None:
+    if constant.DEBUG:
+      my_colorama.red("------ single() for key '%s' but value is None (empty).  Nothing to save!" % key)
+    my_data.Data.collection_log_file.write("------ single() for key '%s' but value is None (empty).  Nothing to save!" % key)
+    return False
+
   if type(value) is not str:
     value = value['#text']
+
   nc = len(my_data.Data.csv_row[col])
   if nc > 0 and not replace:
     if constant.DEBUG:
@@ -289,10 +308,13 @@ def process_multi(thing, heading):         # use for simple key:value things lik
 
 
 # classification
+#Map: classification_action(x):
+#Map:   x -> dc:identifier
+#
 def classification_action(c):
-  try:
-    ok = multi('dc:identifier', c)      ### !Map
-      # if '@authority' in c:
+  try:                                  
+    ok = multi('dc:identifier', c)       
+      # if '@authority' in c:           
       #   ok = append('dc:identifier', c['@authority'])
     if ok:
       return ok
@@ -303,12 +325,12 @@ def classification_action(c):
 # identifier    Verified: 29-Sep-2023
 def identifier_action(id):
   try:
-    if '@type' in id:
-      if id['@type'] == 'local':
-        heading = 'dc:identifier'                     ### !Map
-      elif id['@type'] == 'hdl':
-        heading = 'dcterms:identifier.dcterms:URI'    ### !Map
-      else:
+    if '@type' in id:                                 #Map: identifier_action(x):
+      if id['@type'] == 'local':                      #Map:   if x[@type='local']:
+        heading = 'dc:identifier'                     #Map:     x -> dc:identifier 
+      elif id['@type'] == 'hdl':                      #Map:   if: x[@type='hdl']:
+        heading = 'dcterms:identifier.dcterms:URI'    #Map:     x -> dcterms:identifier.dcterms:URI
+      else:                                           
         return skip(id)
       return multi(heading, id)
     return skip(id)
@@ -381,14 +403,15 @@ def language_action(lang):
     c = t = ok = False
     for term in lang:
       if term['@type'] == 'code':
-        c = term['#text']
+        c = term['#text']           # Save the #code if that's all we have
       if term['@type'] == 'text':
-        t = term['#text']
-    if t:
-      ok = multi('dc:language', t)        ### !Map   Saving #text is preferable
-    elif c:
-      ok = multi('dc:language', c)        ### !Map   Save the #code if that's all we have
-    if ok:
+        t = term['#text']           # Saving #text is preferable
+
+    if t:                                 #Map: language_action(x):
+      ok = multi('dc:language', t)        #Map:   if x[@type='text']:
+    elif c:                               #Map:     x[text] -> dc:language             
+      ok = multi('dc:language', c)        #Map:   else: 
+    if ok:                                #Map:     x[code] -> dc:language
       return ok
     return skip(lang)
   except Exception as e:
@@ -397,10 +420,10 @@ def language_action(lang):
 # location  Verified: 29-Sep-2023
 def location_action(loc):
   import my_colorama
-  try:
-    if 'shelfLocator' in loc:
-      ok = multi('dc:identifier', loc['shelfLocator'])  ### !Map
-      if ok:
+  try:                                                  #Map: location_action(x):
+    if 'shelfLocator' in loc:                           #Map:   if 'shelfLocator' in x: 
+      ok = multi('dc:identifier', loc['shelfLocator'])  #Map:      x -> dc:identifier
+      if ok:                                            
         loc['shelfLocator'] = ok
         return ok
       else:
@@ -415,14 +438,14 @@ def name_action(name):
     if 'namePart' in name:
       if 'roleTerm' in name['role']:
         v = name['role']['roleTerm']
-        if type(v) is not str:
-          v = v['#text']
-        if v.lower( ) in constant.CREATORS:
-          ok = multi('dc:creator', name['namePart'])    ### !Map
-          if ok:
-            return ok
-      ok = multi('dc:contributor', name['namePart'])    ### !Map
-      if ok:
+        if type(v) is not str:                          
+          v = v['#text']                                #Map: name_action(x):
+        if v.lower( ) in constant.CREATORS:             #Map:   if x/role/roleTerm in CREATORS:
+          ok = multi('dc:creator', name['namePart'])    #Map:     x -> dc:creator
+          if ok:                                        #Map:   else:
+            return ok                                   #Map:     x -> dc:contributor
+      ok = multi('dc:contributor', name['namePart'])    
+      if ok:                                            
         return ok
     return skip(name)
   except Exception as e:
@@ -432,14 +455,16 @@ def name_action(name):
 def note_action(note):
   ok = False
   try:
-    if '@displayLabel' in note:
-      if 'DATE' in note['@displayLabel'].upper( ):
-        return multi('dc:date', note)                   ### !Map
-    elif '@type' in note:
-      if 'citation'.lower() in note['@type']:
-        return multi('dcterms:bibliographicCitation', note)     ### !Map
-      else: 
-        return multi('dc:description', note)        ### !Map
+    if '@displayLabel' in note:                              #Map: note_action(x):
+      if 'DATE' in note['@displayLabel'].upper( ):           #Map:   if x[@displayLabel='date']:
+        return multi('dc:date', note)                        #Map:     x -> dc:date 
+    elif '@type' in note:                                    #Map:   elif x[@type]:
+      if 'provenance'.lower() in note['@type']:              #Map:     if x[@type='provenance']:
+        return multi('dcterms:provenance', note)             #Map:       x -> dcterms:provenance 
+      elif 'citation'.lower() in note['@type']:              #Map:     if x[@type='citation']:
+        return multi('dcterms:bibliographicCitation', note)  #Map:       x -> dcterms:bibliographicCitation 
+      else:                                                  #Map:     else:
+        return multi('dc:description', note)                 #Map:       x -> dc:description
     return skip(note)
   except Exception as e:
     exception(e, note)
@@ -461,32 +486,32 @@ def note_action(note):
 
 
 # originInfo
-def originInfo_action(info):
+def originInfo_action(info):                                  #Map: originInfo_action(x):
   c = len(info)
   try:
-    if 'dateCreated' in info:
-      ok = single('dcterms:created', info['dateCreated'])     ### !Map
+    if 'dateCreated' in info:                                 #Map:   if 'dateCreated' in x:
+      ok = single('dcterms:created', info['dateCreated'])     #Map:     x/mods:dateCreated -> dcterms:created
       if ok:
         info['dateCreated'] = ok
         c = c - 1
       else:
         skip(info['dateCreated'])
-    if 'dateIssued' in info:
-      ok = single('dcterms:issued', info['dateIssued'])     ### !Map
+    if 'dateIssued' in info:                                  #Map:   if 'dateIssued' in x:
+      ok = single('dcterms:issued', info['dateIssued'])       #Map:     x/mods:dateIssued -> dcterms:issued
       if ok:
         info['dateIssued'] = ok
         c = c - 1
       else:
         skip(info['dateIssued'])
-    if 'publisher' in info:
-      ok = multi('dcterms:publisher', info['publisher'])     ### !Map
+    if 'publisher' in info:                                   #Map:   if 'publisher' in x: 
+      ok = multi('dcterms:publisher', info['publisher'])      #Map:     x/mods:publisher -> dcterms:publisher
       if ok:
         info['publisher'] = ok
         c = c - 1
       else:
         skip(info['publisher'])
-    if 'dateOther' in info:
-      ok = single('dcterms:dateAccepted', info['dateOther'])    ### !Map
+    if 'dateOther' in info:                                   #Map:   if 'dateOther' in x:
+      ok = single('dcterms:dateAccepted', info['dateOther'])  #Map:     x/mods:dateOther -> dcterms:dateAccepted
       if ok:
         info['dateOther'] = ok
         c = c - 1
@@ -494,16 +519,16 @@ def originInfo_action(info):
         #   ok = append('Other_Date~Display_Label', info['dateOther']['@displayLabel'])
       else:
         skip(info['dateOther'])
-    if 'dateCaptured' in info:
-      # ok = single('dcterms:dateSubmitted', info['dateCaptured'])    ### !Map
-      ok = single('rep_note', "dateCaptured: " + info['dateCaptured'])    ### !Map
-      if ok:
+    if 'dateCaptured' in info:                                            #Map:   if 'dateCaptured' in x: 
+      # ok = single('dcterms:dateSubmitted', info['dateCaptured'])    
+      ok = append('rep_note', "dateCaptured: " + info['dateCaptured'])    #Map:     x/mods:dateCaptured -> rep_note with 'dateCaptured:' prefix
+      if ok:                                                             
         info['dateCaptured'] = ok
         c = c - 1
       else:
-        skip(info['dateOther'])
+        skip(info['dateCaptured'])
     if c > 0:
-      return skip(info)
+      return skip(info) 
   except Exception as e:
     exception(e, info)
 
@@ -511,35 +536,35 @@ def originInfo_action(info):
 # physicalDescription
 def physicalDescription_action(desc):
   import my_colorama
-  try:
-    if 'digitalOrigin' in desc:
-      ok = single('dc:format', desc['digitalOrigin'])    ### !Map
+  try:                                                   #Map: physicalDescription_action(x):
+    if 'digitalOrigin' in desc:                          #Map:   if 'mods:digitalOrigin' in x: 
+      ok = single('dc:format', desc['digitalOrigin'])    #Map:     x/mods:digitalOrigin -> dc:format
       if ok:
         desc['digitalOrigin'] = ok
       else:
         skip(desc['digitalOrigin'])
-    if 'extent' in desc:
-      ok = single('dcterms:extent', desc['extent'])      ### !Map
+    if 'extent' in desc:                                 #Map:   if 'mods:extent' in x:
+      ok = single('dcterms:extent', desc['extent'])      #Map:     x/mods:extent -> dcterms:extent
       if ok:
         desc['extent'] = ok
       else:
-        skip(desc['extent'])
-    if 'form' in desc:                                   ### !Map
+        skip(desc['extent'])                             #Map:   if 'mods:form' in x:
+    if 'form' in desc:                                   #Map:     x/mods:form -> dcterms:medium
       ok = single('dcterms:medium', desc['form'])
       if ok:
         desc['form'] = ok
       else:
         skip(desc['form'])
-    if 'internetMediaType' in desc:
-      mime = getMIME(desc['internetMediaType'])
+    if 'internetMediaType' in desc:                      #Map:   if 'mods:internetMediaType' in x and it maps to valid MIME type:
+      mime = getMIME(desc['internetMediaType'])          #Map:     x/mods:internetMediaType -> dcterms:format.dcterms:IMT    
       if (desc['internetMediaType'] == 'text/plain'):
         mime = 'text/plain';
       if mime:
-        ok = single('dcterms:format.dcterms:IMT', mime)      ### !Map
+        ok = single('dcterms:format.dcterms:IMT', mime)    
         if ok:
           desc['internetMediaType'] = ok
         else:
-          skip(desc['internetMediaType'])
+          skip(desc['internetMediaType'])               
       else:
         my_colorama.red("Could not guess MIME type from '%s'." % desc['internetMediaType'])
         skip(desc['internetMediaType'])
@@ -550,13 +575,14 @@ def physicalDescription_action(desc):
 
 # relatedItem
 def relatedItem_action(item):
-  try:
-    if '@type' in item:
-      if item['@type'] == 'isPartOf':
-        ok = multi('dcterms:isPartOf', item['titleInfo']['title'])    ### !Map
+  ok = False
+  try:                                                                #Map: relatedItem_action(x):
+    if '@type' in item:                                               #Map:   if x[@type='isPartOf']: 
+      if item['@type'] == 'isPartOf':                                 #Map:     x -> dcterms:isPartOf 
+        ok = multi('dcterms:isPartOf', item['titleInfo']['title'])    
     else:
-      ok = multi('dc:relation', item['titleInfo']['title'])      ### !Map
-    if ok:
+      ok = multi('dc:relation', item['titleInfo']['title'])           #Map:   else: mods:relatedItem -> dc:relation
+    if ok:                                                            #Map:     x -> dc:relation
       item['titleInfo']['title'] = ok
       return ok  
     return skip(item)
@@ -568,51 +594,51 @@ def relatedItem_action(item):
 def subject_action(s):
   import constant
 
-  c = len(s)
-  try:
-    if 'geographic' in s:
-      ok = multi('dcterms:spatial', s['geographic'])     ### !Map
+  c = len(s)                                                      #Map: subject_action(x):
+  try:                                                            #Map:   if /mods:geographic in x:
+    if 'geographic' in s:                                         #Map:     x/mods:geographic -> dcterms:spatial
+      ok = multi('dcterms:spatial', s['geographic'])     
       if ok:
         s['geographic'] = ok
         c = c - 1
       else:
         skip(s['geographic'])
-    if 'hierarchicalGeographic' in s:
-      ok = multi('dcterms:spatial', s['hierarchicalGeographic'])   ### !Map
+    if 'hierarchicalGeographic' in s:                              #Map:   if /mods:hierarchicalGeographic in x:
+      ok = multi('dcterms:spatial', s['hierarchicalGeographic'])   #Map:     x/mods:hierarchicalGeographic -> dcterms:spatial
       if ok:
         s['hierarchicalGeographic'] = ok
         c = c - 1
       else:
         skip(s['hierarchicalGeographic'])
-    if 'temporal' in s:
-      ok = multi('dcterms:temporal', s['temporal'])     ### !Map
+    if 'temporal' in s:                                            #Map:   if /mods:temporal in x:
+      ok = multi('dcterms:temporal', s['temporal'])                #Map:     x/mods:temporal -> dcterms:temporal
       if ok:
         s['temporal'] = ok
         c = c - 1
       else:
         skip(s['temporal'])
-    if 'cartographics' in s:
-      if 'coordinates' in s['cartographics']:
-        ok = single('dcterms:spatial.dcterms:Point', s['cartographics']['coordinates'])    ###!Map
+    if 'cartographics' in s:                                                              #Map:   if /mods:cartographics in x: 
+      if 'coordinates' in s['cartographics']:                                             #Map:     if /mods:coordinates in y:
+        ok = single('dcterms:spatial.dcterms:Point', s['cartographics']['coordinates'])   #Map:       x/y/mods:coordinates -> dcterms:spatial.dcterms:Point
         if ok:
           c = c - 1
           s['cartographics']['coordinates'] = ok
           return ok
-      else:
-        ok = multi('dcterms:spatial', s['cartographics'])    ###!Map
-        if ok:
+      else:                                                 
+        ok = multi('dcterms:spatial', s['cartographics'])         #Map:     else:         
+        if ok:                                                    #Map:       x/mods:cartograhpics -> dcterms:spatial
           c = c - 1
           s['cartographics'] = ok
           return ok
       skip(['cartographics'])
     if 'topic' in s:                                          # unfortunately, s['topic'] could be a dict or a list
       if '@authority' in s and s['@authority'] == 'lcsh':
-        heading = 'dcterms:subject.dcterms:LCSH'             ### !Map
-        c = c - 1
+        heading = 'dcterms:subject.dcterms:LCSH'             #Map:   if mods:topic in x:
+        c = c - 1                                            #Map:     y[@authority='lcsh'] -> dcterms:subject.dcterms:LCSH
         s['@authority'] = constant.DONE + heading
       else:
-        heading = 'dc:subject'                               ### !Map
-      ok = multi(heading, s['topic'])
+        heading = 'dc:subject'                               #Map:   else: 
+      ok = multi(heading, s['topic'])                        #Map:     y -> dc:subject
       if ok:
         s['topic'] = ok
         c = c - 1
@@ -621,7 +647,7 @@ def subject_action(s):
     if c > 0:
       return skip(s)
     else:
-      return ok
+      return ok                     
   except Exception as e:
     exception(e, s)
 
@@ -630,12 +656,13 @@ def subject_action(s):
 def titleInfo_action(title):
   try:
     ok = False
-    if '@type' in title:
-      if title['@type'] == 'alternative':
-        ok = multi('dcterms:alternative', title['title'])   ### !Map
-    else:
-      ok = single('dc:title', title['title'])             ### !Map
-    if ok:
+    if '@type' in title:                                      #Map: titleInfo_action(x):
+      if title['@type'] == 'alternative':                     #Map:   if x[@type]: 
+        ok = multi('dcterms:alternative', title['title'])     #Map:     if x[@type='alternative']:
+                                                              #Map:       x -> dcterms:alternative
+    else:                                                     #Map:     else:
+      ok = single('dc:title', title['title'])                 #Map:       x -> dc:title
+    if ok:                                                    
       return ok
     else:
       return skip(title)

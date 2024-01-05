@@ -18,7 +18,8 @@ import gspread_formatting as gsf
 import my_data, my_colorama, constant
 
 # Return integer if string is a valid integer
-def is_int(text):
+def is_int(t):
+  text = str(t)
   if text.isalpha():
     return False
   try:
@@ -90,22 +91,69 @@ def collection_to_google(collection, csv_file, log_file):
     log_file.write('CSV write to collection worksheet "%s" failed.' % collection)
 
   # Some examples of fetching data 
-  print('Rows: ', wks.row_count)
-  print('Cols: ', wks.col_count)
+  # print('Rows: ', wks.row_count)
+  # print('Cols: ', wks.col_count)
 
   color = 'yellow'
+  
+  # Fill our Pandas dataframe so we don't have to keep reading from the Google Sheet
+  df = pandas.read_csv(csv_filename)
+  row_count = df.shape[0]
+  all_rows_range = f"[(2:{row_count})]"
 
-  # Let's format some of the rows to highlight compound objects
-  headings = wks.row_values(1)
-  for r in range(2,wks.row_count+1):
-    row = wks.row_values(r)
-    if row[0]:                     # item has a group_id, it's part of a compound
-      cid = is_int(row[1])
-      if cid:                      # collection_id is an integer, this is a compound parent 
-        color = 'yellow' if color == 'green' else 'green'
-        wks.format(str(r), constant.ALTERNATING_COLORS[color][0])
-      else:                        # not a parent, must be a child of previous parent
-        wks.format(str(r), constant.ALTERNATING_COLORS[color][1])
+  # Format the heading row
+  fmt = gsf.cellFormat(
+    backgroundColor=gsf.color(0.8, 0.8, 0.8),
+    textFormat=gsf.textFormat(bold=True)
+    )
+  gsf.format_cell_range(wks, '1', fmt)
+
+  # Add a conditional formatting rule to highlight any cells containing "REPLACE ME"
+  rule = gsf.ConditionalFormatRule(
+    ranges=[gsf.GridRange.from_a1_range('2:*', wks)],
+    booleanRule=gsf.BooleanRule(
+      condition=gsf.BooleanCondition('TEXT_CONTAINS', ['REPLACE ME']),
+      format=gsf.CellFormat(textFormat=gsf.textFormat(bold=True), backgroundColor=gsf.Color(0.8,0,0))
+    )
+  )
+
+  rules = gsf.get_conditional_format_rules(wks)
+  rules.clear( )
+  rules.append(rule)
+  
+  # Add a conditional formatting rule to highlight any rows marked as "*PARENT*"
+  rule = gsf.ConditionalFormatRule(
+    ranges=[gsf.GridRange.from_a1_range('2:*', wks)],
+    booleanRule=gsf.BooleanRule(
+      condition=gsf.BooleanCondition('TEXT_EQ', ['*PARENT*']),
+      format=gsf.CellFormat(textFormat=gsf.textFormat(bold=True), backgroundColor=gsf.Color(0.137,0.922,0.165))
+    )
+  )
+
+  rules.append(rule)
+
+  # Add a conditional formatting rule to highlight any rows marked as "*CHILD*"  
+  rule = gsf.ConditionalFormatRule(
+    ranges=[gsf.GridRange.from_a1_range('2:*', wks)],
+    booleanRule=gsf.BooleanRule(
+      condition=gsf.BooleanCondition('TEXT_EQ', ['*CHILD*']),
+      format=gsf.CellFormat(textFormat=gsf.textFormat(bold=False), backgroundColor=gsf.Color(0.443,0.969,0.463))
+    )
+  )
+
+  rules.append(rule)
+  rules.save( )
+
+  # # Let's format some of the rows to highlight compound objects
+  # for r in range(2, row_count):
+  #   row = df.iloc[r]
+  #   if not pandas.isna(row.group_id):  # item's group_id is NOT NAN, it's part of a compound
+  #     cid = is_int(row.collection_id)
+  #     if cid:          # collection_id is an integer, this is a compound parent 
+  #       color = 'yellow' if color == 'green' else 'green'
+  #       wks.format(str(r), constant.ALTERNATING_COLORS[color][0])
+  #     else:            # not a parent, must be a child of previous parent
+  #       wks.format(str(r), constant.ALTERNATING_COLORS[color][1])
 
   # print(wks.acell('A9').value)
   # print(wks.cell(3, 4).value)
@@ -121,24 +169,23 @@ def collection_to_google(collection, csv_file, log_file):
 
 # Get the runtime args...
 parser = argparse.ArgumentParser( )
-parser.add_argument('--collection_path', '-cp', nargs=1,
-  help="The path to the collection's exported mods.csv file", required=False, default="/collection_xml")
+parser.add_argument('--collection_name', '-cn', nargs=1,
+  help="The name of the collection to be processed and copied to the Google Sheet.", required=False, default=constant.COLLECTION_NAME)
 args = parser.parse_args( )
 
-# Move (cd) to the collection_path directory and go
+collection = args.collection_name[0]
+
+# Move (cd) to the local collection directory and go
 cwd = os.getcwd( )
-path = args.collection_path
+path = constant.OUTPUT_PATH + collection
 try:
-  os.chdir(path[0])
+  os.chdir(path)
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
   exit( )
 
-collection = os.getcwd( ).rsplit('/', 1)[-1]
-
-if constant.DEBUG:
-  msg = "-- Now working in collection directory: %s" % collection
-  my_colorama.blue(msg)
+msg = "-- Now working in collection directory: %s" % collection
+my_colorama.blue(msg)
 
 # Open the mods.csv file 
 csv_filename = 'mods.csv'

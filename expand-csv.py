@@ -137,27 +137,25 @@ def analyze_csv(collection, csv_file, log_file):
 
 # Get the runtime args...
 parser = argparse.ArgumentParser( )
-parser.add_argument('--collection_path', '-cp', nargs=1,
-  help="The local path of the collection to be processed", required=False, default="/collection_xml")
+parser.add_argument('--collection_name', '-cn', nargs=1,
+  help="The name/ID of the collection to be processed", required=False, default=constant.COLLECTION_NAME)
 args = parser.parse_args( )
 
 # Move (cd) to the collection_path directory and go
 cwd = os.getcwd( )
-collection_path = args.collection_path
+collection = args.collection_name[0]
+collection_path = constant.OUTPUT_PATH + collection
 try:
-  os.chdir(collection_path[0])
+  os.chdir(collection_path)
 except IOError as e:
   print('Operation failed: %s' % e.strerror)
   exit( )
 
-collection = os.getcwd( ).rsplit('/', 1)[-1]
-
-if constant.DEBUG:
-  msg = "-- Now working in collection directory: %s" % collection
-  my_colorama.blue(msg)
+msg = "-- Now working in collection directory: %s" % collection_path
+my_colorama.blue(msg)
 
 # csv_filename = 'mods.csv'
-log_filename = collection + '-expansion.log'
+log_filename = collection_path + '-expansion.log'
 
 # Open the Alma API
 try: 
@@ -198,8 +196,8 @@ try:
         #------------------------------------------------------------------
         # Compound object post-processing... 
         # Turn a compound parent into a new collection with children as items within
-        if "compound" in cModel:
-          createAlmaCollection(user_collection, my_data.Data.title, my_data.Data.description)    # just testing
+        # if "compound" in cModel:
+        #   createAlmaCollection(user_collection, my_data.Data.title, my_data.Data.description)    
 
         # Analyze the CSV contents 
         counter = analyze_csv(collection, temp_file, my_data.Data.collection_log_file)
@@ -265,7 +263,7 @@ try:
 
       # Finish by suggesting the `aws s3...` commands that should be used 
       # as part of the Alma-D upload operation.
-      cp = "aws s3 cp %s/OBJ/ s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/REPLACE-WITH-PROCESS-ID/ --recursive" % collection_path[0]
+      cp = "aws s3 cp %s/OBJ/ s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/REPLACE-WITH-PROCESS-ID/ --recursive" % collection_path
       ls = "aws s3 ls s3://na-test-st01.ext.exlibrisgroup.com/01GCL_INST/upload/5776525300004641/ --recursive"
 
       print( )

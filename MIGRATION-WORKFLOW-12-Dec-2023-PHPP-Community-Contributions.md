@@ -1,153 +1,152 @@
-# Migration Workflow - Start to Finish
+# Migration Workflow - 12-Dec-2023 - PHPP Community Contributions
 
-This document is intended to be a comprehensive resource for understanding and managing the Grinnell College Libraries migration of Digital.Grinnell's Islandora framework to an Alma-Digital (Alma-D) instance.  
+This document includes the specifics of the `PHPP - Community Contributions` (grinnell:phpp-community) migration initiated on 12-Dec-2023.  
 
-# Exporting from Islandora
+## Exported from Islandora
 
-Exports from DG/Islandora include MODS metadata files named `grinnell_<pid number>_MODS.xml` and OBJ (the object content) files named similarly in the form `grinnell_<pid number>_OBJ.<extension>`.  Two [blog](https://static.grinnell.edu/dlad-blog) posts address details surrounding the export of these datastreams from some of my earlier work:  
+In _VSCode_ I used the `Remote SSH: Connection to host...` command and selected `DGDocker1`.  The provided me with a new _VSCode_ workspace window in which I opened the remote `/home/islandora` directory.  Within that directory both the `export.sh` and `collections.list` files were visible and opened for editing.  
 
-  - [Export Rootstalk OBJs from Digital.Grinnell](https://static.grinnell.edu/dlad-blog/posts/117-export-rootstalk-objs-from-dg/)
-  - [Exporting, Editing & Replacing MODS Datastreams: Updated Technical Details](https://static.grinnell.edu/dlad-blog/posts/115-exporting-editing-replacing-mods-datastreams-updated-technical-details/)
-
-The principles and commands mentioned in those posts have been encapsulated into a bash script named `export.sh` on node `DGDocker1`, the host server for our Islandora instance, in `/home/islandora`.  
-
-## export.sh
-
-As of this writing, the `export.sh` script reads like this:  
-
-```sh
-# export.sh
-# Run this script from the isle-apache-dg container using...
-#    time source export.sh 2>&1 | tee export.log 
-#
-Target=/mnt/storage/Migration-to-Alma/exports
-# wget https://gist.github.com/McFateM/5bd7e5b0fa5d2928b2799d039a4c0fab/raw/collections.list
-while read collection
-do
-  if [[ ! (${collection} == \#*) ]]; then
-    cp -f ri-query.txt query.sparql
-    sed -i 's|COLLECTION|'${collection}'|g' query.sparql
-    mkdir ${Target}/${collection}
-    mkdir ${Target}/${collection}/OBJ
-    cp -f query.sparql ${Target}/${collection}/${collection}.sparql
-    rm -f query.sparql
-    q=${Target}/${collection}/${collection}.sparql
-    echo "Processing collection '${collection}'; Query is '${q}'..."
-    cd /var/www/html/sites/default
-    echo "  Collecting RELS-EXT..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection} --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=RELS-EXT
-    echo "  Collecting MODS..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection} --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=MODS
-    echo "  Collecting OBJ..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection}/OBJ --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=OBJ
-    echo "  Collecting TN..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection}/OBJ --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=TN
-    echo "  Collecting TRANSCRIPT..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection}/OBJ --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=TRANSCRIPT
-    echo "  Collecting MEDIATRACK..."
-    drush -u 1 islandora_datastream_export --export_target=${Target}/${collection}/OBJ --query=${q} --query_type=islandora_datastream_exporter_ri_query  --dsid=MEDIATRACK
-    cd -
-  fi  
-done < collections.list
-```
-
-As you can see above, `export.sh` reads a list of collections to be exported from the `collections.list` text file held in the same directory.  That file at the time of this writing simply contains:  
+I commented out all of the collection's named in `collections.list` and added `phpp-community`, not a comment, to the top of the list.  Next, I opened a new terminal in _VSCode_ within the active workspace, this gives me a command line interface inside the `DGDocker1` host.  In that terminal space I entered these commands to ensure that copies of `collections.list`, `export.sh` and `ri-query.txt` are active inside the _Apache_ container.  
 
 ```
-#
-# Evening of 17-Dec-2023 - Removed all directories before this...
-# Repeating on 19-Dec-2023 with new //Storage/MEDIADB/DGIngest/Migration-to-Alma/exports target...
-#   ...because libarchivesmb is TOOOOOOOOOOOO SLOOOOOOOOOW
-#
-phpp-community
-sandb-archives
-college-life
-social-gospel
-phpp-dcl
-phpp-oral-history
-curricular-materials
-phpp-ghm
-social-justice
-college-history
-gwcc
-college-buildings
-kleinschmidt
-postcards
-jimmy-ley
-```
-
-Ultimately the `export.sh` script and `collections.list` need to reside inside the `Apache` container in our Islandora/ISLE instance.  Note that the `Apache` container has NO editor installed so it's best to edit both files using `nano` from the `/home/islandora` directory of DGDocker1.  Those commands might look like this:  
-
-```zsh
-cd /home/islandora
-nano collections.list
-nano export.sh
-```
-
-The following commands issued from `DGDocker1` can then be used to place them where they need to be:  
-
-```zsh
 docker cp collections.list isle-apache-dg:/. 
 docker cp export.sh isle-apache-dg:/. 
 docker cp ri-query.txt isle-apache-dg:/.
 ```
 
-To run the `export.sh` script one must simply shell into the `isle-apache-dg` container and source the `export.sh` script like so:  
+Next I tried the commands required to run the `export.sh` script.  The commands and subsequent output included:  
 
 ```zsh
 [islandora@dgdocker1 ~]$ cd ~
 [islandora@dgdocker1 ~]$ docker exec -it isle-apache-dg bash
-root@be75c79ac587:/# time source export.sh 2>&1 | tee export.log
-```
-
-Output from the above command sequence currently looks like this:  
-
-```zsh
-[islandora@dgdocker1 ~]$ cd ~
-[islandora@dgdocker1 ~]$ docker exec -it isle-apache-dg bash
-root@be75c79ac587:/# source export.sh
-mkdir: cannot create directory ‘/mnt/storage/Migration-to-Alma/exports/postcards’: File exists
-Processing collection ${collection}
-bash: Query: command not found
-Processing results 1 to 10                                                        [ok]
-Datastream exported succeeded for grinnell:13669.                                                              [success]
-Datastream exported succeeded for grinnell:13545.                                                              [success]
-Datastream exported succeeded for grinnell:13544.                                                              [success]
-Datastream exported succeeded for grinnell:16335.                                                              [success]
-Datastream exported succeeded for grinnell:16324.                                                              [success]
-Datastream exported succeeded for grinnell:13583.                                                              [success]
+root@c7ffceef5d29:/# source export.sh
+mkdir: cannot create directory ‘/mnt/libarchive/collection-MODS-export/phpp-community’: File exists
+mkdir: cannot create directory ‘/mnt/libarchive/collection-MODS-export/phpp-community/OBJ’: File exists
+Processing collection 'phpp-community'; Query is '/mnt/libarchive/collection-MODS-export/phpp-community/phpp-community.sparql'...
+  Collecting RELS-EXT...
+Processing results 1 to 10                                                      [ok]
+Datastream exported succeeded for grinnell:6183.                           [success]
+Datastream exported succeeded for grinnell:12522.                          [success]
+Datastream exported succeeded for grinnell:5681.                           [success]
+Datastream exported succeeded for grinnell:20424.                          [success]
+Datastream exported succeeded for grinnell:5284.                           [success]
+Datastream exported succeeded for grinnell:12071.                          [success]
+Datastream exported succeeded for grinnell:27234.                          [success]
+Datastream exported succeeded for grinnell:20618.                          [success]
+Datastream exported succeeded for grinnell:30060.                          [success]
+Datastream exported succeeded for grinnell:6201.                           [success]
+Processing results 11 to 20                                                     [ok]
+Datastream exported succeeded for grinnell:30047.                          [success]
+Datastream exported succeeded for grinnell:11811.                          [success]
 ...
+
 ```
+
+
+
+
+
+
+
 
 ## Exported Files
 
-`export.sh` currently specifies the destination for exported MODS and OBJ files as `/mnt/storage/Migration-to-Alma/exports` in a subdirectory with the same name as the named collection from `collections.list`.  `/mnt/storage` is local network network storage pointing to `//Storage/MEDIADB/DGIngest/`.  
+_Digital.Grinnell_ shows that the `phpp-community` collection was holding a total of 840 objects, but 125 of those are compound objects, and there are 4 books.  So, **the total number of individual objects was actually much higher at 1343**.  Running the `export.sh` script successfully harvested all of the MODS, OBJ and TN datastreams into `/mnt/libarchive/collection-MODS-export/phpp-community` for a total of **5236** files.  The elapsed time for the export was roughly **3 hours!**  
 
-<!-- Progress Marker !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-<div style="border: 3px solid red; padding: 10px; margin: 10px; font-weight: bold; font-size: large;text-align: center;"><span>Progress Marker</span></div>
-<!-- Progress Marker !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+### Additional Collection Exports
 
-## Copy Files to //Storage
+This is not related to the `phpp-community` export, but on 12-Dec-2023 I modified `collections.list` to include the `phpp-dcl`, `phpp-oral-history`, `student-scholarship`, `faculty-scholarship`, and `curricular-materials` collections.  I started the `export.sh` script using a `time` command to get a sense of how long the export takes.   Unfortunately, my network connection was lost sometime in the night so my screen did not show the outcome when I returned the next morning, and I have no way of knowing if the process completed successfully or not.  **In the future it would be wise to lanuch the script using `time source export.sh 2>&1 | tee export.log`**. 
 
-This is, for now, a necessary evil... we need to copy all the exported files for a given collection `//Storage`, specifically to `smb://storage/library/allstaff/DigitalGrinnellMigration`.  In this instance I copied those files using _Microsoft Azure Storage Explorer_.  The reason for this evil... glob and wildcard operations like those used in the scripts (see below) are **painfully slow** when _Azure_ network storage is involved.  In some of my tests operations that take a split second with local or `//storage` network files were taking 3-4 minutes in _Azure_.  That is entirely unacceptable!  
+Checking the `/libarchivesmb/collection-MODS-export` directory in _Azure_ using _Microsoft Azure Storage Explorer_ shows me that the last collection in the list, `curricular-materials`, has a directory containing a total of 431 files/exported datastreams representing 109 individual objects .  Right now there are 53 objects in that collection, including 4 compound objects and 2 books.  So, the 109 individual objects sounds about right.  It's probably safe to assume that the entire export of these collections is COMPLETE.  
 
-## Important! Before Running Any Scripts...
+Additionally, the last of the files has a creation date/time of 11:46 PM.  Since I started the process at about 4:45 PM that's an estimated run time of 7 hours!  
 
-Since the export and subsequent "copy" process places files in `smb://storage/library/allstaff/DigitalGrinnellMigration` it is imperative that this network directory be mounted on the desktop where the `main.py`, `to-google-sheet.py` and `expand-csv.py` scripts will run.  This is easily done using `Finder` | `Go` | `Connect to Server...` and specifying this: `smb://storage/library/allstaff/DigitalGrinnellMigration`.  This should open the storage directory as `/Volumes/DigitalGrinnellMigration` which is where the scripts will be looking for the directories named the same as the collections.   
+## Copy Files to "Local" Storage
 
-## Run Scripts Against Files in Local Storage
+Still a necessary evil since the mount command that Mike C. provided, `open smb://gcsmbstorage:YGaPeG98jSKxbJSVTAp8Q2fwYAyL67fPnoVuzruPDgBLhYFmbxmwVoTRPyhV18h4X3ldMlNZkEm0%2BAStM2kQyg%3D%3D@gcsmbstorage.file.core.windows.net/libarchivesmb` does not appear to work.  In this instance I copied the contents of `/libarchivesmb/collection-MODS-export/phpp-community` using _Microsoft Azure Storage Explorer_ into this repo's `/data/phpp-community` directory. 
 
-Next step, running the `main.py`, `to-google-sheet.py` and `expand-csv.py` scripts found in this repo against the files that were just saved in `/Volumes/DigitalGrinnellMigration/<collection>`.  The commands looked something like this:  
+## Run Scripts Against Files in "Local" Storage
+
+Next step, running the `main.py`, `to-google-sheet.py` and `expand-csv.py` scripts found in this repo against the files that were just saved in `/data/phpp-community`.  The first of the commands was this:  
 
 ```zsh
-python3 main.py --collection phpp-community
-python3 to-google-sheet.py --collection phpp-community
-python3 expand-csv.py --collection phpp-community
+python3 main.py --collection_name phpp-community --local --collection_id 81294753160004641
+```
+
+Note that the `--collection_id` specified above IS correct as it represents a new `Community Collections` sub-collection in our _Alma_ sandbox.  
+
+### Results of Running `main.py`
+
+An abreviated sample of the output from `main.py` includes:  
+
+```
+No DCMIType match found for 'letter'
+No Resource Type match found for 'letter'
+No DCMIType match found for 'miscellaneous document'
+No DCMIType match found for 'clipping'
+No Resource Type match found for 'clipping'
+No DCMIType match found for 'article'
+No DCMIType match found for 'postcard'
+No DCMIType match found for 'portrait'
+No Resource Type match found for 'portrait'
+No DCMIType match found for 'book'
+No DCMIType match found for 'photograph'
+-- Processing: ./grinnell_11704_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_13131_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_13130_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_12551_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_17907_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_17906_MODS.log
+  Exception: name 'null' is not defined
+-- Processing: ./grinnell_12550_MODS.log
+  Exception: name 'null' is not defined
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.6_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/runpy.py", line 198, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.6_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/runpy.py", line 88, in _run_code
+    exec(code, run_globals)
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/adapter/../../debugpy/launcher/../../debugpy/__main__.py", line 39, in <module>
+    cli.main()
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 430, in main
+    run()
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/adapter/../../debugpy/launcher/../../debugpy/../debugpy/server/cli.py", line 284, in run_file
+    runpy.run_path(target, run_name="__main__")
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 321, in run_path
+    return _run_module_code(code, init_globals, run_name,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 135, in _run_module_code
+    _run_code(code, mod_globals, init_globals,
+  File "/Users/mcfatem/.vscode/extensions/ms-python.python-2023.22.0/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_runpy.py", line 124, in _run_code
+    exec(code, run_globals)
+  File "main.py", line 544, in <module>
+  File "main.py", line 272, in process_collection
+TypeError: string indices must be integers, not 'str'
+```
+
+In the end at `main.py` line 272, the variable `g` is a `str` with a value of `photograph`, it has no `['#text']` element.  This presumably applies to `grinnell:12550` which has neither a `genre` nor `typeOfResource`.
+
+# CRITICAL Error!!!
+
+There were several hundred "bad parents" in DG that needed to be resolved before moving forward.  A "bad parent" is a compound parent object that lives in a different collection (or NO collection) than one or more of its children.  
+
+The "bad parents" mentioned above were resolved over the weekend of December 16-17, but other script changes related to compound parent/child export are urgently needed so I'm going to terminate this document, revise the scripts (and `MIGRATION-WORKFLOW.md`), and open a new `MIGRATION-WORKFLOW-18-Dec-2023-PHPP-Community-Contributions.md`.   
+
+<!-- Progress Marker !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+<div style="border: 3px solid red; padding: 10px; margin: 10px; font-weight: bold; font-size: large;text-align: center;"><span>This marks the end of progress from 12-Dec to 18-Dec.  What follows below may be obsolete.  Look to `MIGRATION-WORKFLOW-18-Dec-2023-PHPP-Community-Contributions.md` for additional changes.</span></div>
+<!-- Progress Marker !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+
+```zsh
+python3 to-google-sheet.py --collection_path ./data/phpp-community
+python3 expand-csv.py --collection_path ./data/phpp-community
 ```
 
 Most notably, that process created a new `expanded.csv` file, and that is the file that we need to ingest into our Alma (sandbox) instance.  **Critical note: The name must be `expanded.csv` as that is the expected metadata file name in our The `main.py` script also created a new `OBJ` subdirectory where all of the OBJ (object) files are stored.  
-
-
 
 ## Alma Digital Uploader
 
@@ -735,6 +734,4 @@ Identifying a compound and it's parent cannot be reliably done using just a `MOD
 # New Compound Behavior
 
 After meeting on the morning of October 31, 2023, we've decided to look at automated generation of new collections to represent compound objects, rather than using differnt "reps" of a bib record to represent the children.  In this scheme each compound parent should create a new collection using the parent title as the collection name, and all children of that compound then become individual objects within.  Before embarking on this change some cleanup of `main.py` was in order.  
-
-
 

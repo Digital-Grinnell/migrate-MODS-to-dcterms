@@ -27,6 +27,7 @@ class Data:
     'dc:subject',
     'dcterms:subject.dcterms:LCSH',
     'dc:description',
+    'dcterms:provenance',
     'dcterms:bibliographicCitation',
     'dcterms:abstract',
     'dcterms:publisher',
@@ -76,10 +77,10 @@ class Data:
 
   ## Global filenames, files and API connections
 
-  collection_log_filename = ''
+  collection_log_path = ''
   collection_log_file = None
 
-  object_log_filename = ''
+  object_log_path = ''
   object_log_file = None
 
   alma_api = None

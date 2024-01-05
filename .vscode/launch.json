@@ -10,7 +10,12 @@
       "request": "launch",
       "program": "expand-csv.py",
       "console": "integratedTerminal",
-      "justMyCode": true
+      "justMyCode": true,
+      "args": [
+        "--collection_name",
+        "phpp-ghm"
+      ]
+
     },
     {
       "name": "Python: to-google-sheet",
@@ -18,7 +23,11 @@
       "request": "launch",
       "program": "to-google-sheet.py",
       "console": "integratedTerminal",
-      "justMyCode": true
+      "justMyCode": true,
+      "args": [
+        "--collection_name",
+        "phpp-community"
+      ]
     },
     {
       "name": "Python: main",
@@ -28,8 +37,9 @@
       "console": "integratedTerminal",
       "justMyCode": true,
       "args": [
-        "--collection_id",
-        "81294733160004641"
+        "--collection_name",
+        "phpp-community",
+        "--overwrite"
       ]
     }
   ]

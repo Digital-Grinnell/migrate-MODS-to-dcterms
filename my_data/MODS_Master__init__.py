@@ -114,10 +114,10 @@ class Data:
 
   ## global filenames and files
 
-  collection_log_filename = ''
+  collection_log_path = ''
   collection_log_file = None
 
-  object_log_filename = ''
+  object_log_path = ''
   object_log_file = None
 
 
